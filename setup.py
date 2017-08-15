@@ -29,7 +29,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/monash-merc/cvl-fabric-launcher',
+    url='https://gitlab.erc.monash.edu.au/hpc-team/ASSyncy',
 
     # Author details
     author='Chris Hines',
@@ -82,6 +82,7 @@ setup(
     install_requires=[
             'requests',
             'pyyaml',
+            'dateutils',
             ],
 
 
