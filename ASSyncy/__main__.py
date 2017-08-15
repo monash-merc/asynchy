@@ -43,7 +43,7 @@ class ASSyncy:
         config={}
         import requests
         signal.signal(signal.SIGINT, lambda x, y: ASSyncy.signal_handler(x,y,stop))
-        logging.basicConfig(filename="syncy.log",format="%(asctime)s %(levelname)s:%(process)s: %(message)s")
+        logging.basicConfig(filename=self.config['logfile'],format="%(asctime)s %(levelname)s:%(process)s: %(message)s")
         logger=logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
@@ -68,14 +68,15 @@ class ASSyncy:
             for e in equipment:
                 currentvisits.extend(filter(lambda x: self.get_m3cap(x['epn']) is not None, e.getVisits(start_time=now,end_time=now+datetime.timedelta(hours=1))))
             previousvisits=[]
+            currentStart = ASSyncy.getCurrentStart(currentvisits)
             for e in equipment:
-                previousvisits.extend(filter(lambda x: self.get_m3cap(x['epn']) is not None, e.getVisits(start_time=now-datetime.timedelta(days=7),end_time=now-datetime.timedelta(days=3))))
+                previousvisits.extend(filter(lambda x: self.get_m3cap(x['epn']) is not None, e.getVisits(start_time=currentStart-datetime.timedelta(hors=2),end_time=currentStart-datetime.timedelta(hours=1))))
             for v in currentvisits:
                 if not v in framesTransfered:
                     import dateutil.tz
                     endtime=dateutil.parser.parse(v['end_time'])+datetime.timedelta(seconds=300)
                     transferParams=self.getTransferParams(v)
-                    t=threading.Thread(target=ASSyncy.mxFramesSync,args=[stop,transferParams,endtime])
+                    t=threading.Thread(target=ASSyncy.mxLiveSync,args=[stop,transferParams,endtime])
                     taskqueue.put(t)
                     if len(framesTransfered) >= MAXLEN:
                         framesTransfered.popleft()
@@ -83,7 +84,7 @@ class ASSyncy:
             for v in previousvisits:
                 if not v in autoprocessingTransfered:
                     transferParams=self.getTransferParams(v)
-                    t=threading.Thread(target=ASSyncy.mxAutoprocessingSync,args=[stop,transferParams])
+                    t=threading.Thread(target=ASSyncy.mxPostSync,args=[stop,transferParams])
                     taskqueue.put(t)
                     if len(autoprocessingTransfered) >= MAXLEN:
                         autoprocessingTransfered.popleft()
@@ -91,6 +92,15 @@ class ASSyncy:
             stop.wait(timeout=60)
         taskrunthread.join()
         
+
+    @staticmethod
+    def getCurrentStart(visits):
+        currentStart=datetime.datetime.now()
+        for v in visits:
+            vs = dateutil.parser.parse(v['start_time'])
+            if vs < currentStart:
+                currentStart=vs
+        return currentStart
 
     @staticmethod
     def signal_handler(signal,frame,event):
@@ -117,7 +127,7 @@ class ASSyncy:
 
 
     @staticmethod
-    def mxFramesSync(stopTrigger,transferParams,endtime):
+    def mxLiveSync(stopTrigger,transferParams,endtime):
         tz=dateutil.tz.gettz('Australia/Melbourne')
         now = datetime.datetime.now(tz)
     #    now=datetime.datetime(2017,8,9,0,0,0)
@@ -125,7 +135,7 @@ class ASSyncy:
         if transferParams.m3cap==None:
             return
         while now < endtime and not stopTrigger.isSet():
-            transferParams.framesOnly=True
+            transferParams.framesOnly=False
             ASTransfer.transfer(transferParams,stopTrigger)
             now = datetime.datetime.now(tz)
         if not stopTrigger.isSet(): 
@@ -134,7 +144,7 @@ class ASSyncy:
 
 
     @staticmethod
-    def mxAutoprocessingSync(stopTrigger,transferParams):
+    def mxPostSync(stopTrigger,transferParams):
         if transferParams.m3cap==None:
             return
         if not stopTrigger.isSet(): 
