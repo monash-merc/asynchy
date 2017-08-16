@@ -2,35 +2,35 @@ try:
     import six
 except:
     pass
-import ASPortal
-import requests
-import datetime
 import re
 import signal
 try:
     import queue
 except:
     import Queue as queue
-import ASTransfer
 import threading
 import requests
 import collections
 import dateutil.parser
+import datetime
 import time
 import logging
+from . import ASPortal
+from . import ASTransfer
 
 class TransferParameters:
     framesOnly=False
     epn=None
-    def __init__(self,visit,cap):
+    def __init__(self,visit,cap,keyfile=None):
         self.visit=visit
         self.epn=visit['epn']
         self.end_time=visit['end_time']
         self.m3cap=cap
         self.framesOnly=False
+        self.keyfile=keyfile
 
     def __repr__(self):
-        return "TransferParamas<{} ending at {} livesync {}>".format(self.epn,self.end_time,self.framesOnly)
+        return "TransferParams<{} ending at {} livesync {}>".format(self.epn,self.end_time,self.framesOnly)
 
 class ASSyncy:
     def __init__(self,config):
@@ -38,6 +38,30 @@ class ASSyncy:
         self.config={}
         with open(config) as f:
             self.config=yaml.load(f.read())
+        self.tz=dateutil.tz.gettz('Australia/Melbourne') # This is the timezone for this script. It actually doesn't matter what value is used here as calls to datetime.datetime.now(self.tz) will convert to whatever timezone you specify and comparions just need a TZ in both sides of the operator
+
+    @staticmethod
+    def signal_handler(signal,frame,event):
+        event.set()
+
+    @staticmethod
+    def taskRunner(q,stop):
+        tasks=[]
+        while not stop.isSet():
+            try:
+                task = q.get(block=False)
+                task.start()
+                tasks.append(task)
+            except queue.Empty as e:
+                stop.wait(timeout=1)
+            for task in tasks:
+                if not task.is_alive():
+                    task.join()
+                    tasks.remove(task)
+        for task in tasks:
+            task.join()
+            tasks.remove(task)
+
 
     def main(self):
         config={}
@@ -66,17 +90,16 @@ class ASSyncy:
             now=datetime.datetime.now()
             currentvisits=[]
             for e in equipment:
-                currentvisits.extend(filter(lambda x: self.get_m3cap(x['epn']) is not None, e.getVisits(start_time=now,end_time=now+datetime.timedelta(hours=1))))
+                currentvisits.extend(e.getVisits(start_time=now,end_time=now+datetime.timedelta(hours=1)))
+            currentStart = self.getCurrentStart(currentvisits)
             previousvisits=[]
-            currentStart = ASSyncy.getCurrentStart(currentvisits)
             for e in equipment:
-                previousvisits.extend(filter(lambda x: self.get_m3cap(x['epn']) is not None, e.getVisits(start_time=currentStart-datetime.timedelta(hors=2),end_time=currentStart-datetime.timedelta(hours=1))))
+                previousvisits.extend(filter(lambda x: dateutil.parser.parse(x['end_time']) < currentStart , e.getVisits(start_time=currentStart-datetime.timedelta(hours=1),end_time=currentStart)))
             for v in currentvisits:
                 if not v in framesTransfered:
-                    import dateutil.tz
                     endtime=dateutil.parser.parse(v['end_time'])+datetime.timedelta(seconds=300)
                     transferParams=self.getTransferParams(v)
-                    t=threading.Thread(target=ASSyncy.mxLiveSync,args=[stop,transferParams,endtime])
+                    t=threading.Thread(target=self.mxLiveSync,args=[stop,transferParams,endtime])
                     taskqueue.put(t)
                     if len(framesTransfered) >= MAXLEN:
                         framesTransfered.popleft()
@@ -84,7 +107,7 @@ class ASSyncy:
             for v in previousvisits:
                 if not v in autoprocessingTransfered:
                     transferParams=self.getTransferParams(v)
-                    t=threading.Thread(target=ASSyncy.mxPostSync,args=[stop,transferParams])
+                    t=threading.Thread(target=self.mxPostSync,args=[stop,transferParams])
                     taskqueue.put(t)
                     if len(autoprocessingTransfered) >= MAXLEN:
                         autoprocessingTransfered.popleft()
@@ -93,43 +116,18 @@ class ASSyncy:
         taskrunthread.join()
         
 
-    @staticmethod
-    def getCurrentStart(visits):
-        currentStart=datetime.datetime.now()
+    def getCurrentStart(self,visits):
+        currentStart=datetime.datetime.now(self.tz)
         for v in visits:
             vs = dateutil.parser.parse(v['start_time'])
             if vs < currentStart:
                 currentStart=vs
         return currentStart
 
-    @staticmethod
-    def signal_handler(signal,frame,event):
-        event.set()
-
-    @staticmethod
-    def taskRunner(q,stop):
-        tasks=[]
-        while not stop.isSet():
-            try:
-                task = q.get(block=False)
-                task.start()
-                tasks.append(task)
-            except queue.Empty as e:
-                stop.wait(timeout=1)
-            for task in tasks:
-                if not task.is_alive():
-                    task.join()
-                    tasks.remove(task)
-        for task in tasks:
-            task.join()
-            tasks.remove(task)
 
 
-
-    @staticmethod
-    def mxLiveSync(stopTrigger,transferParams,endtime):
-        tz=dateutil.tz.gettz('Australia/Melbourne')
-        now = datetime.datetime.now(tz)
+    def mxLiveSync(self,stopTrigger,transferParams,endtime):
+        now = datetime.datetime.now(self.tz)
     #    now=datetime.datetime(2017,8,9,0,0,0)
     #    now=now.replace(tzinfo=tz)
         if transferParams.m3cap==None:
@@ -137,14 +135,13 @@ class ASSyncy:
         while now < endtime and not stopTrigger.isSet():
             transferParams.framesOnly=False
             ASTransfer.transfer(transferParams,stopTrigger)
-            now = datetime.datetime.now(tz)
+            now = datetime.datetime.now(self.tz)
         if not stopTrigger.isSet(): 
             transferParams.framesOnly=False
             ASTransfer.transfer(transferParams,stopTrigger)
 
 
-    @staticmethod
-    def mxPostSync(stopTrigger,transferParams):
+    def mxPostSync(self,stopTrigger,transferParams):
         if transferParams.m3cap==None:
             return
         if not stopTrigger.isSet(): 
@@ -164,7 +161,7 @@ class ASSyncy:
 
 
     def getTransferParams(self,visit):
-        return TransferParameters(visit,self.get_m3cap(visit['epn']))
+        return TransferParameters(visit,self.get_m3cap(visit['epn']),self.config['keyfile'])
 
 def main():
     import sys
