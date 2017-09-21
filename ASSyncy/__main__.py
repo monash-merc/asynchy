@@ -82,11 +82,13 @@ class ASSyncy:
             equipment.append( ASPortal.Connection(s,e['username'],e['password'],equipmentID="{}".format(e['id'])))
         for e in equipment:
             e.auth()
-        MAXLEN=5
+        MAXLEN=50
         framesTransfered=[]
         autoprocessingTransfered=collections.deque(maxlen=MAXLEN)
         framesTransfered=collections.deque(maxlen=MAXLEN)
         while not stop.isSet():
+
+            # Initialise the list of current and previous visits on all equipment.
             now=datetime.datetime.now()
             currentvisits=[]
             for e in equipment:
@@ -94,11 +96,15 @@ class ASSyncy:
             currentStart = self.getCurrentStart(currentvisits)
             previousvisits=[]
             for e in equipment:
-                previousvisits.extend(filter(lambda x: dateutil.parser.parse(x['end_time']) < currentStart , e.getVisits(start_time=currentStart-datetime.timedelta(hours=1),end_time=currentStart)))
+                previousvisits.extend(filter(lambda x: dateutil.parser.parse(x['end_time']) < currentStart , e.getVisits(start_time=currentStart-datetime.timedelta(days=7),end_time=currentStart)))
+
             for v in currentvisits:
                 if not v in framesTransfered:
                     endtime=dateutil.parser.parse(v['end_time'])+datetime.timedelta(seconds=300)
                     transferParams=self.getTransferParams(v)
+                    if transferParams.m3cap == None:
+                        continue
+                    logger.debug("Enqueueing thread to transfer {}".format(transferParams))
                     t=threading.Thread(target=self.mxLiveSync,args=[stop,transferParams,endtime])
                     taskqueue.put(t)
                     if len(framesTransfered) >= MAXLEN:
@@ -107,11 +113,15 @@ class ASSyncy:
             for v in previousvisits:
                 if not v in autoprocessingTransfered:
                     transferParams=self.getTransferParams(v)
+                    if transferParams.m3cap == None:
+                        continue
+                    logger.debug("Enqueueing thread to transfer {}".format(transferParams))
                     t=threading.Thread(target=self.mxPostSync,args=[stop,transferParams])
                     taskqueue.put(t)
                     if len(autoprocessingTransfered) >= MAXLEN:
                         autoprocessingTransfered.popleft()
                     autoprocessingTransfered.append(v)
+            # Query the portal every 60 seconds, unless stop is set
             stop.wait(timeout=60)
         taskrunthread.join()
         
