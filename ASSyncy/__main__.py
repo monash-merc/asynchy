@@ -121,8 +121,8 @@ class ASSyncy:
                     if len(autoprocessingTransfered) >= MAXLEN:
                         autoprocessingTransfered.popleft()
                     autoprocessingTransfered.append(v)
-            # Query the portal every 60 seconds, unless stop is set
-            stop.wait(timeout=60)
+            # Query the portal every 300 seconds, unless stop is set
+            stop.wait(timeout=300)
         taskrunthread.join()
         
 
