@@ -20,7 +20,7 @@ class transfermethod:
     def rsync(username,srcpath,destpath,keyfile,stop=None):
         import subprocess
         logger=logging.getLogger()
-        cmd=['rsync','-r','-l','-P','-i','--chmod=Dg+s,ug+w,o-wx,ug+X','--perms','--size-only','--include','.info','--exclude','.*','-e \"ssh -i {}\"'.format(keyfile),'{}@{}'.format(username,srcpath),'{}'.format(destpath)]
+        cmd=['rsync','-r','-l','-P','-i','--chmod=Dg+s,ug+w,o-wx,ug+X','--perms','--size-only','--include','.info','--exclude','.*','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath),'{}'.format(destpath)]
         p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         for stdout_line in iter(p.stdout.readline, b''):
             logger.info(stdout_line)
