@@ -114,6 +114,7 @@ class ASSyncy:
                 if not v in autoprocessingTransfered:
                     transferParams=self.getTransferParams(v)
                     if transferParams.m3cap == None:
+                        logger.debug("not enqueing {} no matching group on m3".format(transferParams))
                         continue
                     logger.debug("Enqueueing thread to transfer {}".format(transferParams))
                     t=threading.Thread(target=self.mxPostSync,args=[stop,transferParams])
@@ -121,6 +122,9 @@ class ASSyncy:
                     if len(autoprocessingTransfered) >= MAXLEN:
                         autoprocessingTransfered.popleft()
                     autoprocessingTransfered.append(v)
+                else:
+                    logger.debug("not enqueing {} already transfered".format(transferParams))
+
             # Query the portal every 300 seconds, unless stop is set
             stop.wait(timeout=300)
         taskrunthread.join()
@@ -138,8 +142,6 @@ class ASSyncy:
 
     def mxLiveSync(self,stopTrigger,transferParams,endtime):
         now = datetime.datetime.now(self.tz)
-    #    now=datetime.datetime(2017,8,9,0,0,0)
-    #    now=now.replace(tzinfo=tz)
         if transferParams.m3cap==None:
             return
         while now < endtime and not stopTrigger.isSet():
@@ -159,9 +161,6 @@ class ASSyncy:
             ASTransfer.transfer(transferParams,stopTrigger)
 
     def get_m3cap(self,epn):
-        #CAPBASEEPNS=['11906','11902','11897','11894','11916']
-        #CAPBASEEPNS=['11937l']
-        #EPNPROJMAP = {'11937':'pMOSP','12275':'pMOSP','12287':'pMOSP'}
         m=re.match('([0-9]+)[a-z]*',epn)
         epnbase=m.group(1)
         if epnbase in self.config['epn_cap_map']:
