@@ -39,6 +39,12 @@ class Connection:
 
     def getVisits(self,start_time,end_time):
         r=self.session.get(self.visitsURL,params={'access_token':self.access_token,'start_time':start_time.isoformat(),'end_time':end_time.isoformat()},verify=self.verify)
+        print("status {}".format(r.status_code))
+        if r.status_code == 401:
+            print("Auth failed, reauth")
+            self.auth()
+            r=self.session.get(self.visitsURL,params={'access_token':self.access_token,'start_time':start_time.isoformat(),'end_time':end_time.isoformat()},verify=self.verify)
+            print("status: {}".format(r.status_code))
         try:
             return json.loads(r.text)['data']['visits']
         except KeyError:
