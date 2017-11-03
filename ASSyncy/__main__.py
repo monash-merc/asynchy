@@ -69,7 +69,7 @@ class ASSyncy:
         signal.signal(signal.SIGINT, lambda x, y: ASSyncy.signal_handler(x,y,stop))
         logging.basicConfig(filename=self.config['logfile'],format="%(asctime)s %(levelname)s:%(process)s: %(message)s")
         logger=logging.getLogger()
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
 
         taskqueue=queue.Queue()
         stop=threading.Event()
@@ -116,7 +116,7 @@ class ASSyncy:
                     if transferParams.m3cap == None:
                         logger.debug("not enqueing {} no matching group on m3".format(transferParams))
                         continue
-                    logger.debug("Enqueueing thread to transfer {}".format(transferParams))
+                    logger.info("Enqueueing thread to transfer {}".format(transferParams))
                     t=threading.Thread(target=self.mxPostSync,args=[stop,transferParams])
                     taskqueue.put(t)
                     if len(autoprocessingTransfered) >= MAXLEN:

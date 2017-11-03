@@ -23,8 +23,6 @@ class transfermethod:
         cmd=['rsync','-r','-l','-P','-i','--chmod=Dg+s,ug+w,o-wx,ug+X','--perms','--size-only','--include','.info','--exclude','.*','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath),'{}'.format(destpath)]
         p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         for stdout_line in iter(p.stdout.readline, b''):
-            logger.info(stdout_line)
-            logger.debug(stdout_line)
             if stop != None and stop.isSet():
                 p.terminate()
         for stderr_line in iter(p.stderr.readline, b''):
@@ -32,3 +30,4 @@ class transfermethod:
             logger.debug(stderr_line)
             if stop != None and stop.isSet():
                 p.terminate()
+        logger.info("Completed transfer to {}".format(destpath))
