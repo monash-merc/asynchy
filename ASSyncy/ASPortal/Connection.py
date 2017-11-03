@@ -49,6 +49,9 @@ class Connection:
             return json.loads(r.text)['data']['visits']
         except KeyError:
             return []
+        except Exception as e:
+            logger.warning("when querying the portal for date range {} {} an exception as raised".format(start_time,end_time))
+            return []
 
 
 #    def getPreviousCAPVisit(self):
