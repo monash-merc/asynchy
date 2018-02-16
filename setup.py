@@ -83,6 +83,7 @@ setup(
             'requests',
             'pyyaml',
             'dateutils',
+            'jinja2',
             ],
 
 
