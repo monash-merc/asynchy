@@ -83,7 +83,6 @@ setup(
             'requests',
             'pyyaml',
             'dateutils',
-            'xsmtplib',
             ],
 
 
