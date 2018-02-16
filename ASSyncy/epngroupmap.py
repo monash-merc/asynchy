@@ -49,7 +49,7 @@ class Epngroupmap(object):
                 unknownepns[v['epn']] = v
         body = ""
         for (epn,visit) in unknownepns.items():
-            body = body + "epn {} is not known, it includes scientists {} on {}. Please add it the config\n".format(epn,visit['data_scientists'],visit['start_time']))
+            body = body + "epn {} is not known, it includes scientists {} on {}. Please add it the config\n".format(epn,visit['data_scientists'],visit['start_time'])
         
         tmpl = """
 Content-Type: text/plain; charset="us-ascii" 
