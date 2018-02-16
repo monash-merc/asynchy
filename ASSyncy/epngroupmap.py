@@ -47,12 +47,26 @@ class Epngroupmap(object):
         for v in visits:
             if v['epn'] in unknownepns:
                 unknownepns[v['epn']] = v
+        body = ""
         for (epn,visit) in unknownepns.items():
-            print("epn {} is not known, it includes scientists {} on {}. Please add it the config".format(epn,visit['data_scientists'],visit['start_time']))
-
+            body = body + "epn {} is not known, it includes scientists {} on {}. Please add it the config\n".format(epn,visit['data_scientists'],visit['start_time']))
         
+        tmpl = """
+Content-Type: text/plain; charset="us-ascii" 
+MIME-Version: 1.0 
+Content-Transfer-Encoding: 7bit 
+Subject: Unknown ownership of EPNs:
+From: help@massive.org.au 
+To: {{ to|join(', ') }}
 
-        
+{{ body }}
+"""
+        from emailclient import EmailClient
+        ec = EmailClient()
+        msgvars = {}
+        msgvars['to'] = 'help@massive.org.au'
+        msgvars['body'] = body
+        ec.send(tmpl,msgvars)
 
 def main():
     import sys
