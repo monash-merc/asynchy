@@ -66,7 +66,7 @@ To: {{ to|join(', ') }}
         msgvars = {}
         msgvars['to'] = 'help@massive.org.au'
         msgvars['body'] = body
-        ec.send(tmpl,msgvars)
+        ec.send(tmpl,msgvars,debug=False)
 
 def main():
     import sys
