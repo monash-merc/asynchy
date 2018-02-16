@@ -45,8 +45,13 @@ class Connection:
         try:
             return json.loads(r.text)['data']['visits']
         except KeyError:
+            print("keyerror")
+            print(json.loads(r.text))
             return []
         except Exception as e:
+            print(e)
+            import traceback
+            print(traceback.format_exc())
             logger.warning("when querying the portal for date range {} {} an exception as raised".format(start_time,end_time))
             return []
 
