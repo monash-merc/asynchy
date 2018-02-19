@@ -2,6 +2,7 @@ class EmailClient():
 
     def send(self, tmplsrc, msgvars, debug=True):
         """If debug is set to true, don't actually send the email"""
+        import smtplib
 
         import logging
         logger=logging.getLogger()
