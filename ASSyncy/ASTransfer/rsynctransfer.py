@@ -5,13 +5,13 @@ class transfermethod:
         import time
         username="help@massive.org.au"
         if params.framesOnly:
-            srcpath="sftp.synchrotron.org.au:/data/{}/frames/".format(params.epn)
+            srcpath="sftp.synchrotron.org.au:/data/{}/data/frames/".format(params.epn)
         else:
-            srcpath="sftp.synchrotron.org.au:/data/{}/".format(params.epn)
+            srcpath="sftp.synchrotron.org.au:/data/{}/data/".format(params.epn)
         if params.framesOnly:
-            destpath="/scratch/{}/{}/frames/".format(params.m3cap,params.epn)
+            destpath="/scratch/{}/{}/data/frames/".format(params.m3cap,params.epn)
         else:
-            destpath="/scratch/{}/{}/".format(params.m3cap,params.epn)
+            destpath="/scratch/{}/{}/data/".format(params.m3cap,params.epn)
         keyfile=params.keyfile
         transfermethod.rsync(username,srcpath,destpath,keyfile,stop)
 
@@ -60,4 +60,5 @@ class transfermethod:
             logger.debug(stderr_line)
             if stop != None and stop.isSet():
                 p.terminate()
-        logger.info("Completed transfer to {}".format(destpath))
+        returncode = p.returncode
+        logger.info("Completed transfer to {} returncode {}".format(destpath,returncode))
