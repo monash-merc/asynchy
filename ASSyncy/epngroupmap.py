@@ -6,7 +6,6 @@ import dateutil.tz
 import threading
 
 
-
 class Epngroupmap(object):
 
     def __init__(self,config):
@@ -14,9 +13,12 @@ class Epngroupmap(object):
         self.config={}
         with open(config) as f:
             self.config=yaml.load(f.read())
-        self.tz=dateutil.tz.gettz('Australia/Melbourne') # This is the timezone for this script. It actually doesn't matter what value is used here as calls to datetime.datetime.now(self.tz) will convert to whatever timezone you specify and comparions just need a TZ in both sides of the operator
+        # This is the timezone for this script. It actually doesn't matter what 
+        # value is used here as calls to datetime.datetime.now(self.tz) will 
+        # convert to whatever timezone you specify and comparions just need a 
+        # TZ in both sides of the operator
+        self.tz=dateutil.tz.gettz('Australia/Melbourne') 
         self.assync = ASSync(config)
-
 
 
     def main(self):
@@ -36,7 +38,7 @@ class Epngroupmap(object):
         equipment=[]
         s = requests.Session()
         for e in self.config['equipment']:
-            equipment.append( ASPortal.Connection(s,e['username'],e['password'],equipmentID="{}".format(e['id'])))
+            equipment.append( ASPortal.Connection(s, e['username'],e['password'],equipmentID="{}".format(e['id'])))
         for e in equipment:
             e.auth()
 
@@ -61,12 +63,14 @@ To: {{ to|join(', ') }}
 
 {{ body }}
 """
-        from emailclient import EmailClient
-        ec = EmailClient()
-        msgvars = {}
-        msgvars['to'] = 'help@massive.org.au'
-        msgvars['body'] = body
-        ec.send(tmpl,msgvars,debug=False)
+        if body != "":
+            body = "Work instructions: https://sites.google.com/a/monash.edu/hpc-services/work-instructions/system-configuration/m3/mx-integration \n\n" + body
+            from emailclient import EmailClient
+            ec = EmailClient()
+            msgvars = {}
+            msgvars['to'] = 'help@massive.org.au'
+            msgvars['body'] = body
+            ec.send(tmpl,msgvars,debug=False)
 
 def main():
     import sys
