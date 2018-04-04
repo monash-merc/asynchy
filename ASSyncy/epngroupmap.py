@@ -68,7 +68,7 @@ To: {{ to|join(', ') }}
             from emailclient import EmailClient
             ec = EmailClient()
             msgvars = {}
-            msgvars['to'] = 'help@massive.org.au'
+            msgvars['to'] = 'massive-backend@massive.org.au'
             msgvars['body'] = body
             ec.send(tmpl,msgvars,debug=False)
 
