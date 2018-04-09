@@ -49,7 +49,13 @@ class transfermethod:
     @staticmethod
     def rsync(username,srcpath,destpath,keyfile,stop=None):
         import subprocess
+        import os
+        import os.path
         logger=logging.getLogger()
+        try:
+            os.makedirs(os.path.dirname(destpath.rstrip('/')))
+        except:
+            pass
         cmd=['rsync','-r','-l','-P','-i','--chmod=Dg+s,ug+w,o-wx,ug+X','--perms','--size-only','--include','.info','--exclude','.*','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath),'{}'.format(destpath)]
         p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         for stdout_line in iter(p.stdout.readline, b''):
