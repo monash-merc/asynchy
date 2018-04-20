@@ -56,8 +56,7 @@ class Epngroupmap(object):
             else:
                 body = body + "epn {} is not known\n".format(epn)
         
-        tmpl = """
-Content-Type: text/plain; charset="us-ascii" 
+        tmpl = """Content-Type: text/plain; charset="us-ascii" 
 MIME-Version: 1.0 
 Content-Transfer-Encoding: 7bit 
 Subject: Unknown ownership of EPNs:
