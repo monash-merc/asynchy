@@ -32,6 +32,8 @@ class TransferParameters:
         self.m3cap=cap
         self.framesOnly=False
         self.keyfile=keyfile
+        self.host='sftp.synchrotron.org.au'
+        self.path='/scratch'
 
     def __repr__(self):
         return "TransferParams<{} ending at {} livesync {}>".format(self.epn,self.end_time,self.framesOnly)
