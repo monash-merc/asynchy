@@ -5,13 +5,22 @@ class transfermethod:
         import time
         username="help@massive.org.au"
         if params.framesOnly:
-            srcpath="sftp.synchrotron.org.au:/data/{}/data/frames/".format(params.epn)
+            srcpath="{}:/data/{}/data/frames/".format(params.host,params.epn)
         else:
-            srcpath="sftp.synchrotron.org.au:/data/{}/data/".format(params.epn)
+            srcpath="{}:/data/{}/data/".format(params.host,params.epn)
         if params.framesOnly:
-            destpath="/scratch/{}/{}/data/frames/".format(params.m3cap,params.epn)
+            destpath="{}/{}/{}/data/frames/".format(params.path,params.m3cap,params.epn)
         else:
-            destpath="/scratch/{}/{}/data/".format(params.m3cap,params.epn)
+            destpath="{}/{}/{}/data/".format(params.path,params.m3cap,params.epn)
+        keyfile=params.keyfile
+        transfermethod.rsync(username,srcpath,destpath,keyfile,stop)
+
+    @staticmethod
+    def transfersquash(params,stop):
+        import time
+        username="help@massive.org.au"
+        srcpath="{}:/data/{}/data/*.sqfs".format(params.host,params.epn)
+        destpath="{}/{}/{}/data/*.sqfs".format(params.path,params.m3cap,params.epn)
         keyfile=params.keyfile
         transfermethod.rsync(username,srcpath,destpath,keyfile,stop)
 
@@ -22,6 +31,20 @@ class transfermethod:
         srcpath="sftp.synchrotron.org.au:/data/"
         keyfile=params.keyfile
         return transfermethod.rsynclist(username,srcpath,keyfile,stop)
+
+    @staticmethod
+    def squashpresent(params,stop):
+        import time
+        username="help@massive.org.au"
+        srcpath="sftp.synchrotron.org.au:/data/{}/*.sqfs"
+        keyfile=params.keyfile
+        cmd=['rsync','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath)]
+        p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        (stdout,stderr) = p.communicate
+        if p.returncode == 0:
+            return True
+        else:
+            return False
 
     @staticmethod
     def rsynclist(username,srcpath,keyfile,stop=None):
