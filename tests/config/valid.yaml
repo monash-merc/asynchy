@@ -1,0 +1,5 @@
+host: sftp.synchrotron.org.au
+port: 22
+user: help@massive.org.au
+keypath: /path/to/key
+db: tests/config/epnsbk.db
