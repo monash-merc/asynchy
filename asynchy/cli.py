@@ -69,7 +69,14 @@ def _read_config(path):
 @click.option('--config', default="~/.as.yaml", required=False)
 @click.pass_context
 def cli(ctx, config):
-    """Console script for asynchy."""
+    """asynchy helps to sycnhronise data from the Australian Synchrotron
+    to your storage.
+
+    You should start by configuring the Synchrotron remote SFTP service
+    using:
+
+        $ asynchy init
+    """
     if ctx.invoked_subcommand != "init":
         try:
             ctx.obj = _read_config(os.path.expanduser(config))
@@ -84,7 +91,7 @@ def cli(ctx, config):
 
 
 @cli.command()
-@click.option("--config_path", default="~/.asynchy.yaml",
+@click.option("--config_path", default="~/.as.yaml",
               prompt="Please enter the location to save config",
               help="Where should I save the config file?",
               show_default=True)
@@ -97,20 +104,22 @@ def cli(ctx, config):
               prompt="Enter your SFTP user name")
 @click.option("--keypath", required=True, help="Path to private key",
               prompt="Enter the path to your private key")
-@click.option("--db", default="files.db", help="Path to cache DB",
+@click.option("--db", default="./files.db", help="Path to cache DB",
               prompt="Where would you like to store the cache DB",
               show_default=True)
 @click.option("--overwrite", default=False,
               help="Overwrite is config already exists",
               show_default=True, is_flag=True)
 def init(config_path, host, port, user, keypath, db, overwrite):
+    """Configure and initialise asynchy remote"""
     cfg = {
         'host': host,
         'port': port,
         'user': user,
-        'keypath': keypath,
-        'db': db
+        'keypath': os.path.expanduser(keypath),
+        'db': os.path.expanduser(db)
     }
+    config_path = os.path.expanduser(config_path)
 
     if not overwrite and os.path.exists(config_path):
         if not click.confirm(
@@ -137,20 +146,34 @@ def init(config_path, host, port, user, keypath, db, overwrite):
 
 @cli.command()
 @click.option("--dest", default="./",
-              help="Destination directory")
+              help="Destination directory",
+              show_default=True)
 @click.option("--src_prefix", default="/",
-              help="Source prefix for EPNs")
+              help="Prefix to append to EPNs to create their path",
+              show_default=True)
 @click.option("--order", default="ASC",
-              help="Order of transfer based on date")
+              help="Order of transfers by date",
+              show_default=True)
 @click.option("--limit", default=50,
-              help="Number of EPNs transfer")
+              help="Number of EPNs transfer",
+              show_default=True)
 @click.option("--parallel", default=False,
               help="Use multiple processes for parallelisation",
-              is_flag=True)
+              is_flag=True, show_default=True)
 @click.option("--threads", default=cpu_count(),
-              help="Number of threads")
+              help="Number of threads to use. If parallel, the number of "
+              "Python processes to use",
+              show_default=True)
+@click.option("--partial", is_flag=True,
+              help="Enable partial transfers",
+              show_default=True)
+@click.option("--compress", is_flag=True,
+              help="Enable compression prior to transfer",
+              show_default=True)
 @click.pass_context
-def sync(ctx, dest, src_prefix, order, limit, parallel, threads):
+def sync(ctx, dest, src_prefix, order, limit, parallel, threads, partial,
+         compress):
+    """Sync data from a configured asynchy remote"""
     if parallel:
         from multiprocessing.pool import Pool
     else:
@@ -161,6 +184,8 @@ def sync(ctx, dest, src_prefix, order, limit, parallel, threads):
         user=ctx.obj['user'],
         keypath=ctx.obj['keypath'],
         port=ctx.obj['port'],
+        partial=partial,
+        compress=compress,
         pool=Pool(processes=cpu_count())
     )
     main(rst, ctx.obj['db'], dest, src_prefix, order, limit)

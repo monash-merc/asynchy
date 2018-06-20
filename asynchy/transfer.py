@@ -51,7 +51,7 @@ class Transfer(object):
         callback: func
             Single argument callable that will be called with the result of the
             transfer. If the transfer was successful, the result will be a
-            `Success` containing a tuple, where the tuple will contain the src,
+            `Success` containing a TransferResult, which contains the src,
             dest and number of bytes transferred. If the transfer fails with an
             exception, the result will be the exception wrapped in a `Failure`.
             Note: there are no guarantees that the number of bytes transferred
@@ -63,9 +63,9 @@ class Transfer(object):
             Class representing an asynchronous result. This class is returned
             immediately in a nonblocking way and then provides method to check
             and retrieve result later. If transfers are successful,
-            result.get() will be the src, dest and number of bytes transferred
-            wrapped in a `Success`. If the transfer fails with an exception,
-            the result will be the exception wrapped in a `Failure`.
+            result.get() will be a TransferResult wrapped in a `Success`. If
+            the transfer fails with an exception, the result will be the
+            exception wrapped in a `Failure`.
 
         See Also
         --------
@@ -91,7 +91,7 @@ class Transfer(object):
         callback: func
             Single argument callable that will be called with the result of the
             transfer. If the transfer was successful, the result will be a
-            `Success` containing a tuple, where the tuple will contain the src,
+            `Success` containing a [TransferResult], which contains the src,
             dest and number of bytes transferred. If the transfer fails with an
             exception, the result will be the exception wrapped in a `Failure`.
             Note: there are no guarantees that the number of bytes transferred
@@ -102,8 +102,10 @@ class Transfer(object):
         result: multiprocessing.pool.AsyncResult
             Class representing an asynchronous result. This class is returned
             immediately in a nonblocking way and then provides method to check
-            and retrieve result later. If transfers are successful, the src,
-            dest and total bytes transferred will be returned by result.get()
+            and retrieve result later. If transfers are successful,
+            result.get() will be a [TransferResult] wrapped in a `Success`. If
+            the transfer fails with an exception, the result will be the
+            exception wrapped in a `Failure`.
 
         See Also
         --------
@@ -179,8 +181,14 @@ def _parse_byte_number(line):
 
 
 def _rsync_command(src, dest, host=None, port=22, user=None,
-                   keypath=None):
-    cmd = "rsync -rtzvP "
+                   keypath=None, partial=True, compress=False):
+    cmd = "rsync -rt --progress "
+
+    if compress:
+        cmd += "-z "
+
+    if partial:
+        cmd += "--partial "
 
     if all([host, user, keypath]):
         cmd += "-e 'ssh -p {} -i {}' {}@{}:{} {}"\
@@ -193,7 +201,8 @@ def _rsync_command(src, dest, host=None, port=22, user=None,
 
 
 def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
-                     keypath=None, progress=None):
+                     keypath=None, partial=True, compress=False,
+                     progress=None):
     """Transfer function executed on worker processes
 
     Parameters
@@ -214,6 +223,12 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
         SSH user name
     keypath: str, optional
         Path to private key
+    partial: bool, optional
+        Flag to enable partial uploads (default is True). This flag is passed
+        to rsync as `--partial`.
+    compress: bool, optional
+        Enable compression of data prior to transfer (default is False). This
+        flag is passed to rsync as `-z`.
     progress: Queue, optional
         Multiprocessing queues on which to post updates of bytes transferred.
 
@@ -313,8 +328,8 @@ class RSyncTransfer(Transfer):
 
     _instance = None
 
-    def __new__(cls, host, user, keypath, port=22,
-                pool=Pool(processes=cpu_count())):
+    def __new__(cls, host, user, keypath, port=22, partial=True,
+                compress=False, pool=Pool(processes=cpu_count())):
         """Create a single instance of RSyncTransfer object backed by
         a multiprocessing pool. We do this to prevent creation of lots
         of processing Pools.
@@ -334,6 +349,8 @@ class RSyncTransfer(Transfer):
             RSyncTransfer._instance.user = user
             RSyncTransfer._instance.keypath = keypath
             RSyncTransfer._instance.port = port
+            RSyncTransfer._instance.partial = partial
+            RSyncTransfer._instance.compress = compress
             RSyncTransfer._instance._cancel =\
                 RSyncTransfer._instance.manager.Event()
 
@@ -353,13 +370,14 @@ class RSyncTransfer(Transfer):
         return self.pool.apply_async(
             _transfer_worker,
             (src, dest, self._cancel, self.host, self.port, self.user,
-             self.keypath, self._progress),
+             self.keypath, self.partial, self.compress, self._progress),
             callback=callback
         )
 
     def transfer_batch(self, srcs, dest, callback):
         args = [(src, dest, self._cancel, self.host, self.port,
-                 self.user, self.keypath, self._progress)
+                 self.user, self.keypath, self.partial, self.compress,
+                 self._progress)
                 for src in srcs]
         return self.pool.starmap_async(
             _transfer_worker,
