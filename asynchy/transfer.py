@@ -166,7 +166,7 @@ class RSyncOutputParseError(Exception):
     pass
 
 
-def _parse_byte_number(line):
+def _parse_byte_number0(line):
     """Parse the number of bytes from rsync stdout"""
     if b'\r' in line:
         line = line.split(b'\r')[2]
@@ -180,9 +180,13 @@ def _parse_byte_number(line):
     raise RSyncOutputParseError()
 
 
+def _parse_byte_number(line):
+    return int(line)
+
+
 def _rsync_command(src, dest, host=None, port=22, user=None,
                    keypath=None, partial=True, compress=False):
-    cmd = "rsync -rt --progress "
+    cmd = "rsync -rt --out-format='%-10l' "
 
     if compress:
         cmd += "-z "
@@ -265,7 +269,7 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
                     if prog is not None:
                         prog.put(bts)
 
-                except RSyncOutputParseError as err:
+                except ValueError as err:
                     LOGGER.debug("Failed to parse bytes transeferred: %s",
                                  err)
     thread = threading.Thread(target=_update_status,
