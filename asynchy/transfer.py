@@ -261,17 +261,16 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
 
     def _update_status(stream, prog, bt):
         for line in iter(stream.readline, b''):
-            if b'to-chk' in line:
-                try:
-                    bts = _parse_byte_number(line)
+            try:
+                bts = _parse_byte_number(line)
 
-                    bt.increment(bts)
-                    if prog is not None:
-                        prog.put(bts)
+                bt.increment(bts)
+                if prog is not None:
+                    prog.put(bts)
 
-                except ValueError as err:
-                    LOGGER.debug("Failed to parse bytes transeferred: %s",
-                                 err)
+            except ValueError as err:
+                LOGGER.debug("Failed to parse bytes transeferred: %s",
+                             err)
     thread = threading.Thread(target=_update_status,
                               args=(proc.stdout, progress, bytes_transferred))
     thread.daemon = True
@@ -284,19 +283,6 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
                 "Transfer cancel signal received"
             ))
         time.sleep(0.2)
-
-    # for line in iter(proc.stdout.readline, b''):
-    #     if b'to-chk' in line:
-    #         try:
-    #             bts = _parse_byte_number(line)
-
-    #             if progress is not None:
-    #                 progress.put(bts)
-
-    #             bytes_transferred += bts
-    #         except RSyncOutputParseError as err:
-    #             LOGGER.debug("Failed to parse bytes transeferred: %s",
-    #                          err)
 
     thread.join()
     rc = proc.returncode

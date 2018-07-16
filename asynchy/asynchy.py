@@ -126,7 +126,7 @@ def main(transfer, db, dest_path, src_prefix=None, order="ASC",
     epns, expected_size = get_epns(db, order, limit)
     srcs = map(lambda epn: os.path.join(src_prefix, epn[0]), epns)
     progress = transfer.progress()
-    count = 0
+
     with tqdm(total=expected_size) as pbar:
         results = [transfer.transfer(src, dest_path,
                                      _success_handler(db, src_prefix))
@@ -134,8 +134,7 @@ def main(transfer, db, dest_path, src_prefix=None, order="ASC",
 
         while not all(r.ready() for r in results):
             if not progress.empty():
-                count += progress.get()
-                pbar.update(count)
+                pbar.update(progress.get())
 
             time.sleep(0.5)
 
