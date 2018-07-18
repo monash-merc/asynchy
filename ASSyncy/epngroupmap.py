@@ -38,7 +38,7 @@ class Epngroupmap(object):
         equipment=[]
         s = requests.Session()
         for e in self.config['equipment']:
-            equipment.append( ASPortal.Connection(s, e['username'],e['password'],equipmentID="{}".format(e['id'])))
+            equipment.append( ASPortal.Connection(s, e['username'],e['password'],e['client_name'],e['client_password'],equipmentID="{}".format(e['id'])))
         for e in equipment:
             e.auth()
 
@@ -49,12 +49,17 @@ class Epngroupmap(object):
         for v in visits:
             if v['epn'] in unknownepns:
                 unknownepns[v['epn']] = v
-        body = ""
+        body = "".encode('ascii')
         for (epn,visit) in unknownepns.items():
             if visit is not None:
-                body = body + "epn {} is not known, it includes scientists {} on {}. Please add it the config\n".format(epn,visit['data_scientists'],visit['start_time'])
+                addstr = "epn {} is not known, it includes scientists {} on {}. Please add it the config\n".format(epn,visit['data_scientists'],visit['start_time'])
+
+                try:
+                    body = body + addstr.encode('ascii')
+                except UnicodeEncodeError as e:
+                    body = body + "epn {} is not known\n".format(epn).encode('ascii')
             else:
-                body = body + "epn {} is not known\n".format(epn)
+                body = body + "epn {} is not known\n".format(epn).encode('ascii')
         
         tmpl = """Content-Type: text/plain; charset="us-ascii" 
 MIME-Version: 1.0 
@@ -66,8 +71,8 @@ To: {{ to }}
 {{ body }}
 """
         if body != "":
-            body = "Work instructions: https://sites.google.com/a/monash.edu/hpc-services/work-instructions/system-configuration/m3/mx-integration \n\n" + body
-            from emailclient import EmailClient
+            body = "Work instructions: https://sites.google.com/a/monash.edu/hpc-services/work-instructions/system-configuration/m3/mx-integration \n\n".encode('ascii') + body
+            from .emailclient import EmailClient
             ec = EmailClient()
             msgvars = {}
             msgvars['to'] = ['backend@massive.org.au']

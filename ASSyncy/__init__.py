@@ -85,7 +85,7 @@ class ASSync:
         s=requests.Session()
         equipment = []
         for e in self.config['equipment']:
-            equipment.append( ASPortal.Connection(s,e['username'],e['password'],equipmentID="{}".format(e['id'])))
+            equipment.append( ASPortal.Connection(s,e['username'],e['password'],e['client_name'],e['client_password'],equipmentID="{}".format(e['id'])))
         for e in equipment:
             e.auth()
         MAXLEN=50

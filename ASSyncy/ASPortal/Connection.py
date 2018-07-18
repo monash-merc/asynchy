@@ -4,8 +4,10 @@ import json
 class Connection:
 
 
-    def __init__(self,session,username,password,equipmentID):
+    def __init__(self,session,username,password,client_name,client_password,equipmentID):
         self.session=session
+        self.client_name = client_name
+        self.client_password = client_password
         self.username=username
         self.passwd=password
         self.equipmentID=equipmentID
@@ -21,7 +23,7 @@ class Connection:
         self.equipmentURL=self.baseURL+'/api/v1/equipment/'+self.equipmentID
 
     def auth(self):
-        r=self.session.post(self.authURL,auth=(self.username,self.passwd),data={'grant_type': 'client_credentials'},verify=self.verify)
+        r=self.session.post(self.authURL,auth=(self.client_name,self.client_password),data={'username': self.username, 'password': self.passwd,'grant_type': 'password'},verify=self.verify)
         data=json.loads(r.text)
         self.access_token=data['data']['access_token']
 
