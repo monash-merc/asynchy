@@ -185,7 +185,7 @@ def _parse_byte_number(line):
 
 
 def _rsync_command(src, dest, host=None, port=22, user=None,
-                   keypath=None, partial=True, compress=False):
+                   keypath=None, partial=False, compress=False):
     cmd = "rsync -rt "
 
     if compress:
@@ -209,7 +209,7 @@ def _rsync_command(src, dest, host=None, port=22, user=None,
 
 
 def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
-                     keypath=None, partial=True, compress=False,
+                     keypath=None, partial=False, compress=False,
                      progress=None):
     """Transfer function executed on worker processes
 
@@ -322,7 +322,7 @@ class RSyncTransfer(Transfer):
 
     _instance = None
 
-    def __new__(cls, host, user, keypath, port=22, partial=True,
+    def __new__(cls, host, user, keypath, port=22, partial=False,
                 compress=False, pool=Pool(processes=cpu_count())):
         """Create a single instance of RSyncTransfer object backed by
         a multiprocessing pool. We do this to prevent creation of lots

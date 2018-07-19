@@ -164,10 +164,10 @@ def init(config_path, host, port, user, keypath, db, overwrite):
               help="Number of threads to use. If parallel, the number of "
               "Python processes to use",
               show_default=True)
-@click.option("--partial", is_flag=True,
+@click.option("--partial", is_flag=True, default=False,
               help="Enable partial transfers",
               show_default=True)
-@click.option("--compress", is_flag=True,
+@click.option("--compress", is_flag=True, default=False,
               help="Enable compression prior to transfer",
               show_default=True)
 @click.pass_context
