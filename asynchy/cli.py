@@ -186,7 +186,7 @@ def sync(ctx, dest, src_prefix, order, limit, parallel, threads, partial,
         port=ctx.obj['port'],
         partial=partial,
         compress=compress,
-        pool=Pool(processes=cpu_count())
+        pool=Pool(processes=threads)
     )
     main(rst, ctx.obj['db'], dest, src_prefix, order, limit)
 
