@@ -186,20 +186,24 @@ def _parse_byte_number(line):
 
 def _rsync_command(src, dest, host=None, port=22, user=None,
                    keypath=None, partial=True, compress=False):
-    cmd = "rsync -rt --out-format='%-10l' "
+    cmd = "rsync -rt "
 
     if compress:
         cmd += "-z "
 
-    if partial:
-        cmd += "--partial "
-
     if all([host, user, keypath]):
-        cmd += "-e 'ssh -p {} -i {}' {}@{}:{} {}"\
-            .format(quote(str(port)), quote(keypath), quote(user), quote(host),
-                    quote(src), quote(dest))
+        cmd += "-e 'ssh -p {} -i {}' ".format(quote(str(port)), quote(keypath))
+
+        if partial:
+            cmd += "--partial "
+
+        cmd += "--out-format='%-10l' {}@{}:{} {}"\
+            .format(quote(user), quote(host), quote(src), quote(dest))
     else:
-        cmd += "{} {}".format(quote(src), quote(dest))
+        if partial:
+            cmd += "--partial "
+
+        cmd += "--out-format='%-10l' {} {}".format(quote(src), quote(dest))
 
     return cmd
 
