@@ -136,6 +136,4 @@ def main(transfer, db, dest_path, src_prefix=None, order="ASC",
             if not progress.empty():
                 pbar.update(progress.get())
 
-            time.sleep(0.5)
-
     return results
