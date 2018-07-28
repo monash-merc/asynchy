@@ -2,6 +2,7 @@
 
 """Console script for asynchy."""
 import os
+import signal
 import sys
 import click
 import yaml
@@ -179,6 +180,8 @@ def sync(ctx, dest, src_prefix, order, limit, parallel, threads, partial,
     else:
         from multiprocessing.dummy import Pool
 
+    default_int_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    pool = Pool(processes=threads)
     rst = RSyncTransfer(
         host=ctx.obj['host'],
         user=ctx.obj['user'],
@@ -186,8 +189,9 @@ def sync(ctx, dest, src_prefix, order, limit, parallel, threads, partial,
         port=ctx.obj['port'],
         partial=partial,
         compress=compress,
-        pool=Pool(processes=threads)
+        pool=pool
     )
+    signal.signal(signal.SIGINT, default_int_handler)
     main(rst, ctx.obj['db'], dest, src_prefix, order, limit)
 
 

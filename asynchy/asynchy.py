@@ -18,11 +18,13 @@ def _interrupt_handler(sig, frame, cancel):
     print("Cancellation signal recieved... gives us a moment to "
           "cancel async transfers and clean up.\n\n")
 
-    cancel()
-
-    print("If you want to exit immediately, press Ctrl+C again.")
     signal.signal(signal.SIGINT, lambda x, y: sys.exit(1))
-    sys.exit(0)
+    print("If you want to exit immediately, press Ctrl+C again.")
+
+    if cancel():
+        print("Exited")
+
+    # sys.exit(0)
 
 
 def _get_dest_path(base, epn_path):

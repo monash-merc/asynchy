@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import signal
 import subprocess
 import sys
 import threading
 import time
 
-from multiprocessing import Manager, cpu_count
+from multiprocessing import cpu_count
+from multiprocessing.managers import SyncManager
 from multiprocessing.pool import Pool
 try:
     from shlex import quote
@@ -212,7 +214,11 @@ class RSyncTransfer(Transfer):
         if RSyncTransfer._instance is None:
             RSyncTransfer._instance = object.__new__(cls)
             RSyncTransfer._instance.pool = pool
-            RSyncTransfer._instance.manager = Manager()
+            RSyncTransfer._instance.manager = SyncManager()
+            # init Manager
+            RSyncTransfer._instance.manager.start(
+                RSyncTransfer._mgr_init
+            )
             RSyncTransfer._instance._progress =\
                 RSyncTransfer._instance.manager.Queue()
             RSyncTransfer._instance.host = host
@@ -230,6 +236,11 @@ class RSyncTransfer(Transfer):
     def _py3():
         """Are we py3?"""
         return sys.version_info >= (3, 0)
+
+    @staticmethod
+    def _mgr_init():
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        print('initialized manager')
 
     @classmethod
     def _check_rsync(cls):
@@ -261,4 +272,8 @@ class RSyncTransfer(Transfer):
     def cancel(self):
         self._cancel.set()
         self.pool.close()
+        self.pool.join()
+        self._progress.join()
         self.manager.shutdown()
+
+        return True
