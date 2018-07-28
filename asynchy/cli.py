@@ -8,7 +8,7 @@ import yaml
 
 from multiprocessing import cpu_count
 from .asynchy import main
-from .transfer import RSyncTransfer
+from .rsync import RSyncTransfer
 
 
 class InvalidConfigError(Exception):

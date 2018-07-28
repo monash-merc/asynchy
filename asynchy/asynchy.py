@@ -7,7 +7,6 @@ import os
 import signal
 import sqlite3
 import sys
-import time
 
 from tqdm import tqdm
 
@@ -54,7 +53,7 @@ def _success_handler_map(db_conn, src_prefix):
     return handler
 
 
-def _success_handler(db, src_prefix):
+def _transfer_result_callback(db, src_prefix):
     """Callback to handle successful transfers."""
     def handler(result):
         def update_db(res):
@@ -72,7 +71,7 @@ def _success_handler(db, src_prefix):
             db_conn.close()
 
         def log_err(exc):
-            LOGGER.debug(exc)
+            LOGGER.error(exc)
 
         result.map(update_db)
         result.handle_error(log_err)
@@ -129,7 +128,7 @@ def main(transfer, db, dest_path, src_prefix=None, order="ASC",
 
     with tqdm(total=expected_size) as pbar:
         results = [transfer.transfer(src, dest_path,
-                                     _success_handler(db, src_prefix))
+                                     _transfer_result_callback(db, src_prefix))
                    for src in srcs]
 
         while not all(r.ready() for r in results):
