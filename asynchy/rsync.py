@@ -147,7 +147,7 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
                     prog.put(p)
                     p = 0
 
-            except ValueError as err:
+            except RSyncOutputParseError as err:
                 LOGGER.debug("Failed to parse bytes transeferred: %s",
                              err)
 
