@@ -271,8 +271,9 @@ class RSyncTransfer(Transfer):
 
     def cancel(self):
         self._cancel.set()
-        self.pool.close()
-        self.pool.join()
+        time.sleep(0.2)
+        self.pool.terminate()
+        # self.pool.join()
         self._progress.join()
         self.manager.shutdown()
 
