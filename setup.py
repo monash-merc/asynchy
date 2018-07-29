@@ -37,7 +37,7 @@ setup(
     description="Tools to sync data from the Australian Synchrotron",
     entry_points={
         'console_scripts': [
-            'asynchy=asynchy.cli:cli',
+            'asynchy=asynchy.cli.base:cli',
         ],
     },
     install_requires=requirements,
