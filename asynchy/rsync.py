@@ -68,7 +68,8 @@ def _rsync_command(src, dest, host=None, port=22, user=None,
         cmd += "-z "
 
     if all([host, user, keypath]):
-        cmd += "-e 'ssh -p {} -i {}' ".format(quote(str(port)), quote(keypath))
+        cmd += "-e 'ssh -p {} -i {} -o\"BatchMode=yes\"' "\
+            .format(quote(str(port)), quote(keypath))
 
         if partial:
             cmd += "--partial "
@@ -134,7 +135,8 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
     bytes_transferred = AtomicCounter()
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
-                            shell=True)
+                            shell=True,
+                            preexec_fn=RSyncTransfer._subprocess_init)
 
     def _update_status(stream, prog, bt):
         p = 0
@@ -164,7 +166,7 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
             return Failure(TransferCancelledError(
                 "Transfer cancel signal received"
             ))
-        time.sleep(0.2)
+        # time.sleep(0.2)
 
     thread.join()
     rc = proc.returncode
@@ -217,7 +219,7 @@ class RSyncTransfer(Transfer):
             RSyncTransfer._instance.manager = SyncManager()
             # init Manager
             RSyncTransfer._instance.manager.start(
-                RSyncTransfer._mgr_init
+                RSyncTransfer._subprocess_init
             )
             RSyncTransfer._instance._progress =\
                 RSyncTransfer._instance.manager.Queue()
@@ -238,9 +240,8 @@ class RSyncTransfer(Transfer):
         return sys.version_info >= (3, 0)
 
     @staticmethod
-    def _mgr_init():
+    def _subprocess_init():
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        print('initialized manager')
 
     @classmethod
     def _check_rsync(cls):
@@ -271,10 +272,9 @@ class RSyncTransfer(Transfer):
 
     def cancel(self):
         self._cancel.set()
-        time.sleep(0.2)
-        self.pool.terminate()
+        self.pool.close()
         # self.pool.join()
-        self._progress.join()
+        # self._progress.join()
         self.manager.shutdown()
 
         return True
