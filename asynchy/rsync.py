@@ -177,9 +177,14 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
     thread.join()
     rc = proc.returncode
     if rc != 0:
+        _, err = proc.communicate()
+
         return Failure(TransferFailedError(
-            "Rsync transfer failed with the following code: {}\n"
-            "See Rsync 'man' page for an explanation.".format(rc)
+            "Rsync transfer for \"{}\" "
+            "failed with the following code: {}\n"
+            "Error: {}"
+            "See Rsync 'man' page for an explanation.\n"
+            .format(src, rc, err.decode("utf-8"))
         ))
     return Success(TransferResult(src, dest, bytes_transferred.value))
 
