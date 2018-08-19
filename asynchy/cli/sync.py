@@ -22,6 +22,9 @@ from asynchy.rsync import RSyncTransfer
 @click.option("--limit", default=50,
               help="Number of EPNs transfer",
               show_default=True)
+@click.option("--retry", default=0,
+              help="Number of time to retry SSH connection",
+              show_default=True)
 @click.option("--parallel", default=False,
               help="Use multiple processes for parallelisation",
               is_flag=True, show_default=True)
@@ -36,8 +39,8 @@ from asynchy.rsync import RSyncTransfer
               help="Enable compression prior to transfer",
               show_default=True)
 @click.pass_context
-def sync(ctx, dest, src_prefix, order, limit, parallel, threads, partial,
-         compress):
+def sync(ctx, dest, src_prefix, order, limit, retry, parallel,
+         threads, partial, compress):
     """Sync data from a configured asynchy remote"""
     if parallel:
         from multiprocessing.pool import Pool
@@ -54,6 +57,7 @@ def sync(ctx, dest, src_prefix, order, limit, parallel, threads, partial,
         port=ctx.obj['port'],
         partial=partial,
         compress=compress,
+        retry=retry,
         pool=pool
     )
     signal.signal(signal.SIGINT, default_int_handler)

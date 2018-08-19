@@ -61,15 +61,18 @@ def _parse_byte_number(line):
 
 
 def _rsync_command(src, dest, host=None, port=22, user=None,
-                   keypath=None, partial=False, compress=False):
+                   keypath=None, partial=False, compress=False,
+                   retry=0):
     cmd = "rsync -rt "
 
     if compress:
         cmd += "-z "
 
     if all([host, user, keypath]):
-        cmd += "-e 'ssh -p {} -i {} -o\"BatchMode=yes\"' "\
-            .format(quote(str(port)), quote(keypath))
+        cmd += "-e 'ssh -p {} -i {} -o\"BatchMode=yes\" "\
+            "-o\"ConnectionAttempts={}\"' "\
+            .format(quote(str(port)), quote(keypath),
+                    quote(str(retry + 1)))
 
         if partial:
             cmd += "--partial "
@@ -86,7 +89,7 @@ def _rsync_command(src, dest, host=None, port=22, user=None,
 
 
 def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
-                     keypath=None, partial=False, compress=False,
+                     keypath=None, partial=False, compress=False, retry=0,
                      progress=None):
     """Transfer function executed on worker processes
 
@@ -114,6 +117,9 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
     compress: bool, optional
         Enable compression of data prior to transfer (default is False). This
         flag is passed to rsync as `-z`.
+    retry: int, optional
+        Number of SSH connect retries. Passed as retry + 1 ConnectionAttempts
+        option to SSH.
     progress: Queue, optional
         Multiprocessing queues on which to post updates of bytes transferred.
 
@@ -131,7 +137,7 @@ def _transfer_worker(src, dest, stop, host=None, port=22, user=None,
         could succeed or fail.
     """
     cmd = _rsync_command(src, dest, host=host, port=port, user=user,
-                         keypath=keypath)
+                         keypath=keypath, retry=retry)
     bytes_transferred = AtomicCounter()
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
@@ -191,6 +197,15 @@ class RSyncTransfer(Transfer):
         Path to private key
     port: int, optional
         Port to connect on. Default is 22.
+    partial: bool, optional
+        Flag to enable partial uploads (default is True). This flag is passed
+        to rsync as `--partial`.
+    compress: bool, optional
+        Enable compression of data prior to transfer (default is False). This
+        flag is passed to rsync as `-z`.
+    retry: int, optional
+        Number of SSH connect retries. Passed as retry + 1 ConnectionAttempts
+        option to SSH.
     pool: multiprocessing.pool.Pool, optional
         Pool of processes that back this Transerrer. Default is a pool
         with n processes, where n is equal to number of CPUs.
@@ -203,7 +218,7 @@ class RSyncTransfer(Transfer):
     _instance = None
 
     def __new__(cls, host, user, keypath, port=22, partial=False,
-                compress=False, pool=Pool(processes=cpu_count())):
+                compress=False, retry=0, pool=Pool(processes=cpu_count())):
         """Create a single instance of RSyncTransfer object backed by
         a multiprocessing pool. We do this to prevent creation of lots
         of processing Pools.
@@ -229,6 +244,7 @@ class RSyncTransfer(Transfer):
             RSyncTransfer._instance.port = port
             RSyncTransfer._instance.partial = partial
             RSyncTransfer._instance.compress = compress
+            RSyncTransfer._instance.retry = retry
             RSyncTransfer._instance._cancel =\
                 RSyncTransfer._instance.manager.Event()
 
@@ -252,14 +268,15 @@ class RSyncTransfer(Transfer):
         return self.pool.apply_async(
             _transfer_worker,
             (src, dest, self._cancel, self.host, self.port, self.user,
-             self.keypath, self.partial, self.compress, self._progress),
+             self.keypath, self.partial, self.compress, self.retry,
+             self._progress),
             callback=callback
         )
 
     def transfer_batch(self, srcs, dest, callback):
         args = [(src, dest, self._cancel, self.host, self.port,
                  self.user, self.keypath, self.partial, self.compress,
-                 self._progress)
+                 self.retry, self._progress)
                 for src in srcs]
         return self.pool.starmap_async(
             _transfer_worker,
