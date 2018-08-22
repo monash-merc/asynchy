@@ -63,7 +63,7 @@ def _parse_byte_number(line):
 def _rsync_command(src, dest, host=None, port=22, user=None,
                    keypath=None, partial=False, compress=False,
                    retry=0):
-    cmd = "rsync -rt "
+    cmd = "rsync -rlt "
 
     if compress:
         cmd += "-z "
