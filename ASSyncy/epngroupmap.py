@@ -45,7 +45,8 @@ class Epngroupmap(object):
         now=datetime.datetime.now()
         visits=[]
         for e in equipment:
-            visits.extend(e.getVisits(start_time=now-datetime.timedelta(days=200),end_time=now))
+            if not e.access_token is None:
+                visits.extend(e.getVisits(start_time=now-datetime.timedelta(days=200),end_time=now))
         for v in visits:
             if v['epn'] in unknownepns:
                 unknownepns[v['epn']] = v
