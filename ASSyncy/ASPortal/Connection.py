@@ -25,7 +25,15 @@ class Connection:
     def auth(self):
         r=self.session.post(self.authURL,auth=(self.client_name,self.client_password),data={'username': self.username, 'password': self.passwd,'grant_type': 'password'},verify=self.verify)
         data=json.loads(r.text)
-        self.access_token=data['data']['access_token']
+        try:
+            self.access_token=data['data']['access_token']
+        except KeyError:
+            if u'meta' in data and u'error_message' in data['meta']:
+                print(data['meta']['error_message'])
+            else:
+                print('authentication error')
+                print(data)
+            self.access_token=None
 
     def getProposals(self):
         r=self.session.get(self.proposalsURL,params={'access_token':self.access_token},verify=self.verify)

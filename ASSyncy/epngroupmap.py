@@ -12,7 +12,7 @@ class Epngroupmap(object):
         import yaml
         self.config={}
         with open(config) as f:
-            self.config=yaml.load(f.read())
+            self.config=yaml.safe_load(f.read())
         # This is the timezone for this script. It actually doesn't matter what 
         # value is used here as calls to datetime.datetime.now(self.tz) will 
         # convert to whatever timezone you specify and comparions just need a 
@@ -25,8 +25,8 @@ class Epngroupmap(object):
         import requests
         import datetime
         unknownepns = {}
-        epns = ASTransfer.transfermethod.list(self.assync.getTransferParams(None),None)
-        
+        epns = ASTransfer.transfermethod.list(self.assync.getTransferParams(None),None, self.config)
+        #print(epns)
         unknownepns = {}
         for e in epns:
             if e == b'.':
@@ -45,7 +45,8 @@ class Epngroupmap(object):
         now=datetime.datetime.now()
         visits=[]
         for e in equipment:
-            visits.extend(e.getVisits(start_time=now-datetime.timedelta(days=200),end_time=now))
+            if not e.access_token is None:
+                visits.extend(e.getVisits(start_time=now-datetime.timedelta(days=200),end_time=now))
         for v in visits:
             if v['epn'] in unknownepns:
                 unknownepns[v['epn']] = v

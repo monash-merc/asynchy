@@ -43,7 +43,7 @@ class ASSync:
         import yaml
         self.config={}
         with open(config) as f:
-            self.config=yaml.load(f.read())
+            self.config=yaml.safe_load(f.read())
         self.tz=dateutil.tz.gettz('Australia/Melbourne') # This is the timezone for this script. It actually doesn't matter what value is used here as calls to datetime.datetime.now(self.tz) will convert to whatever timezone you specify and comparions just need a TZ in both sides of the operator
 
     @staticmethod
