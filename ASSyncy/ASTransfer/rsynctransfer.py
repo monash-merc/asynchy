@@ -25,12 +25,12 @@ class transfermethod:
         transfermethod.rsync(username,srcpath,destpath,keyfile,stop)
 
     @staticmethod
-    def list(params,stop):
+    def list(params,stop, config):
         import time
         username="help@massive.org.au"
         srcpath="sftp.synchrotron.org.au:/data/"
         keyfile=params.keyfile
-        return transfermethod.rsynclist(username,srcpath,keyfile,stop)
+        return transfermethod.rsynclist(username,srcpath,keyfile, config, stop)
 
     @staticmethod
     def squashpresent(params,stop):
@@ -47,10 +47,12 @@ class transfermethod:
             return False
 
     @staticmethod
-    def rsynclist(username,srcpath,keyfile,stop=None):
+    def rsynclist(username,srcpath,keyfile, config, stop=None):
         import subprocess
         import re
+        logging.basicConfig(filename=config['logfile'],format="%(asctime)s %(levelname)s:%(process)s: %(message)s")
         logger=logging.getLogger()
+        logger.setLevel('info')
         epns = []
         dirre = re.compile(b'\s+(?P<name>\S+)\n')
         cmd=['rsync','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath)]
