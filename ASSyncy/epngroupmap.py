@@ -51,10 +51,11 @@ class Epngroupmap(object):
             if v['epn'] in unknownepns:
                 unknownepns[v['epn']] = v
         body = "".encode('ascii')
-        for (epn,visit) in unknownepns.items():
+        
+        for (epn,visit) in sorted(unknownepns.items()):
             if visit is not None:
                 addstr = "epn {} is not known, it includes scientists {} on {}. Please add it the config\n".format(epn,visit['data_scientists'],visit['start_time'])
-
+                
                 try:
                     body = body + addstr.encode('ascii')
                 except UnicodeEncodeError as e:
