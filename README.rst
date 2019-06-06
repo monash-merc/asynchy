@@ -29,7 +29,8 @@ Installation
 asynchy is pip installable and has a Click CLI.
 To install assynchy run:
 
-  ``pip install -e git+https://github.com/monash-merc/asynchy.git#egg=asynchy``
+``pip install -e git+https://github.com/monash-merc/asynchy.git#egg=asynchy``
+
 ----------------
 Running ASSynchy
 ----------------
@@ -38,25 +39,26 @@ The initial setup requires you to run asynchy init, which will prompt you to ent
 
 The asynchy client transfers data using the sync subcommand:
 
-  ``asynchy sync --help``
+``asynchy sync --help``
  
- Usage: asynchy sync [OPTIONS]
+Usage: asynchy sync [OPTIONS]
 
-    Sync data from a configured asynchy remote
+Sync data from a configured asynchy remote
 
-  Options:
-    --dest TEXT  Destination directory  [default: ./]
-    --src_prefix TEXT  Prefix to append to EPNs to create their path  [default:/]
-    --order TEXT       Order of transfers by date  [default: ASC]
-    --limit INTEGER    Number of EPNs transfer  [default: 50]
-    --retry INTEGER    Number of time to retry SSH connection  [default: 0]
-    --parallel         Use multiple processes for parallelisation  [default:
-                       False]
-    --threads INTEGER  Number of threads to use. If parallel, the number of
-                       Python processes to use  [default: 1]
-    --partial          Enable partial transfers  [default: False]
-    --compress         Enable compression prior to transfer  [default: False]
-    --help             Show this message and exit.
+Options:
+
+--dest TEXT  Destination directory  [default: ./]
+--src_prefix TEXT  Prefix to append to EPNs to create their path  [default:/]
+--order TEXT       Order of transfers by date  [default: ASC]
+--limit INTEGER    Number of EPNs transfer  [default: 50]
+--retry INTEGER    Number of time to retry SSH connection  [default: 0]
+--parallel         Use multiple processes for parallelisation  [default:
+                   False]
+--threads INTEGER  Number of threads to use. If parallel, the number of
+                   Python processes to use  [default: 1]
+--partial          Enable partial transfers  [default: False]
+--compress         Enable compression prior to transfer  [default: False]
+--help             Show this message and exit.
   
 
 To run a sync, use following command:
