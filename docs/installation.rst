@@ -5,24 +5,6 @@ Installation
 ============
 
 
-Stable release
---------------
-
-To install asynchy, run this command in your terminal:
-
-.. code-block:: console
-
-    $ pip install asynchy
-
-This is the preferred method to install asynchy, as it will always install the most recent stable release.
-
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
-
-.. _pip: https://pip.pypa.io
-.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
-
-
 From sources
 ------------
 
@@ -32,13 +14,13 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/keithschulze/asynchy
+    $ git clone git://github.com/monash-merc/asynchy
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl  -OL https://github.com/keithschulze/asynchy/tarball/master
+    $ curl  -OL https://github.com/monash-merc/asynchy/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +29,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/keithschulze/asynchy
-.. _tarball: https://github.com/keithschulze/asynchy/tarball/master
+.. _Github repo: https://github.com/monash-merc/asynchy
+.. _tarball: https://github.com/monash-merc/asynchy/tarball/master

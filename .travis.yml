@@ -20,10 +20,10 @@ script: tox
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
-  user: keithschulze
+  user: manishkumr
   password:
-    secure: PLEASE_REPLACE_ME
+    secure: 
   on:
     tags: true
-    repo: keithschulze/asynchy
+    repo: monash-merc/asynchy
     python: 3.6
