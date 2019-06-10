@@ -3,11 +3,6 @@ asynchy
 =======
 
 
-.. image:: https://img.shields.io/pypi/v/asynchy.svg
-        :target: https://pypi.python.org/pypi/asynchy
-
-.. image:: https://img.shields.io/travis/keithschulze/asynchy.svg
-        :target: https://travis-ci.org/keithschulze/asynchy
 
 .. image:: https://readthedocs.org/projects/asynchy/badge/?version=latest
         :target: https://asynchy.readthedocs.io/en/latest/?badge=latest
