@@ -1,182 +1,283 @@
-try:
-    import six
-except:
-    pass
-import re
-import signal
+import collections
+import datetime
+import dateutil.parser
+import logging
+
 try:
     import queue
-except:
+except ImportError:
     import Queue as queue
-import threading
+import re
 import requests
-import collections
-import dateutil.parser
-import datetime
-import time
-import logging
+import signal
+import threading
+import yaml
+
 from . import ASPortal
 from . import ASTransfer
 
+
 class TransferParameters:
-    framesOnly=False
-    epn=None
-    def __init__(self,visit,cap,keyfile=None):
-        self.visit=visit
+    framesOnly = False
+    epn = None
+
+    def __init__(self, visit, cap, host, destination_path, key_file=None):
+        self.logger = logging.getLogger("mx_sync.TransferParameters")
+        self.logger.debug("creating an instance of TransferParameters")
+
+        self.visit = visit
+
         if visit is not None:
-            self.epn=visit['epn']
-            self.end_time=visit['end_time']
+            self.epn = visit["epn"]
+            self.end_time = visit["end_time"]
         else:
             self.epn = None
-            self.end_type = None
-        self.m3cap=cap
-        self.framesOnly=False
-        self.keyfile=keyfile
-        self.host='sftp.synchrotron.org.au'
-        self.path='/scratch'
+            self.end_time = None
 
+        self.m3cap = cap
+        self.framesOnly = False
+        self.key_file = key_file
+        self.host = host
+        self.path = destination_path
+
+    # representation of class
     def __repr__(self):
-        return "TransferParams<{} ending at {} livesync {}>".format(self.epn,self.end_time,self.framesOnly)
+        return "TransferParams: EPN '{}' ending at '{}' livesync '{}' >".format(
+            self.epn, self.end_time, self.framesOnly
+        )
+
 
 class ASSync:
-    def __init__(self,config):
-        import yaml
-        self.config={}
-        with open(config) as f:
-            self.config=yaml.safe_load(f.read())
-        self.tz=dateutil.tz.gettz('Australia/Melbourne') # This is the timezone for this script. It actually doesn't matter what value is used here as calls to datetime.datetime.now(self.tz) will convert to whatever timezone you specify and comparions just need a TZ in both sides of the operator
+    def __init__(self, config, execute):
+        self.config = config
+        # If true data will be repatriated using rsync, if false rsync dry-run will be used.
+        self.execute = execute
+
+        # This is the timezone for this script. It actually doesn't matter what value is used here as calls
+        # to datetime.datetime.now(self.tz) will convert to whatever timezone you specify and comparions just need
+        # a TZ in both sides of the operator
+        self.tz = dateutil.tz.gettz("Australia/Melbourne")
+
+        self.logger = logging.getLogger("mx_sync.ASSync")
+        self.logger.debug("creating an instance of ASSync")
+
+        self.MAXLEN = 50
+
+        # From the config, obtain EPNs to ignore. These have been previously synched..
+        # Don't rsync these data sets again.
+        with open(self.config["ignore"]) as f:
+            self.ignore = yaml.safe_load(f.read())
 
     @staticmethod
-    def signal_handler(signal,frame,event):
+    def signal_handler(signal, frame, event):
         event.set()
 
-    @staticmethod
-    def taskRunner(q,stop):
-        tasks=[]
+    def task_runner(self, transfer_queue, stop, max_tasks):
+        tasks = []
         while not stop.isSet():
-            try:
-                task = q.get(block=False)
-                task.start()
-                tasks.append(task)
-            except queue.Empty as e:
-                stop.wait(timeout=1)
+
+            # Limit number of tasks to 5 (set in config.yml)
+            if len(tasks) < max_tasks:
+                try:
+                    task = transfer_queue.get(block=False)
+                    task.start()
+                    tasks.append(task)
+                except queue.Empty as e:
+                    stop.wait(timeout=1)
+
+            # check task is running, if not, remove from list
             for task in tasks:
                 if not task.is_alive():
                     task.join()
                     tasks.remove(task)
+
         for task in tasks:
             task.join()
             tasks.remove(task)
 
-
     def main(self):
-        config={}
-        import requests
-        signal.signal(signal.SIGINT, lambda x, y: ASSync.signal_handler(x,y,stop))
-        logging.basicConfig(filename=self.config['logfile'],format="%(asctime)s %(levelname)s:%(process)s: %(message)s")
-        logger=logging.getLogger()
-        logger.setLevel(logging.INFO)
+        signal.signal(
+            signal.SIGINT, lambda x, y: ASSync.signal_handler(x, y, stop)
+        )
 
-        taskqueue=queue.Queue()
-        stop=threading.Event()
-        taskrunthread = threading.Thread(target=ASSync.taskRunner,args=[taskqueue,stop])
-        taskrunthread.start()
+        task_queue = queue.Queue()
+        stop = threading.Event()
+        task_run_thread = threading.Thread(
+            target=ASSync.task_runner,
+            args=(self, task_queue, stop, self.config["max-tasks"]),
+        )
+        task_run_thread.start()
 
-        s=requests.Session()
+        # For each piece of Synchrotron equipment (beamline) create a connection and authorise.
         equipment = []
-        for e in self.config['equipment']:
-            equipment.append( ASPortal.Connection(s,e['username'],e['password'],e['client_name'],e['client_password'],equipmentID="{}".format(e['id'])))
+        session = requests.Session()
+        for e in self.config["equipment"]:
+            equipment.append(
+                ASPortal.Connection(
+                    session,
+                    self.config["base-url"],
+                    e["username"],
+                    e["password"],
+                    e["client_name"],
+                    e["client_password"],
+                    equipment_id="{}".format(e["id"]),
+                )
+            )
         for e in equipment:
             e.auth()
-        MAXLEN=50
-        framesTransfered=[]
-        autoprocessingTransfered=collections.deque(maxlen=MAXLEN)
-        framesTransfered=collections.deque(maxlen=MAXLEN)
+
+        # allocate double ended queues.
+        autoprocessing_transferred = collections.deque(maxlen=self.MAXLEN)
+
         while not stop.isSet():
             # Initialise the list of current and previous visits on all equipment.
-            now=datetime.datetime.now()
-            currentvisits=[]
+            now = datetime.datetime.now()
+            current_visits = []
             for e in equipment:
-                currentvisits.extend(e.getVisits(start_time=now,end_time=now+datetime.timedelta(hours=1)))
-            currentStart = self.getCurrentStart(currentvisits)
-            previousvisits=[]
+                current_visits.extend(
+                    e.getVisits(
+                        start_time=now,
+                        end_time=now + datetime.timedelta(hours=1),
+                    )
+                )
+
+            self.logger.debug("Current visits: {}".format(str(current_visits)))
+
+            # Obtain the earliest start date/time of the current visits.
+            current_start = self.get_current_start(current_visits)
+
+            # Obtaining previous visits, those prior to current_start time.
+            previous_visits = []
             for e in equipment:
-                previousvisits.extend(filter(lambda x: dateutil.parser.parse(x['end_time']) < currentStart , e.getVisits(start_time=currentStart-datetime.timedelta(days=30),end_time=currentStart)))
+                days = self.config["visit-day-range"]
+                visits_tmp = e.getVisits(
+                    start_time=current_start - datetime.timedelta(days=days),
+                    end_time=current_start,
+                )
+                previous_visits.extend(
+                    filter(
+                        lambda x: dateutil.parser.parse(x["end_time"])
+                        < current_start,
+                        visits_tmp,
+                    )
+                )
 
-            for v in currentvisits:
-                if not v in framesTransfered:
-                    endtime=dateutil.parser.parse(v['end_time'])+datetime.timedelta(seconds=300)
-                    transferParams=self.getTransferParams(v)
-                    if transferParams.m3cap == None:
-                        continue
-                    logger.debug("Enqueueing thread to transfer {}".format(transferParams))
-                    t=threading.Thread(target=self.mxLiveSync,args=[stop,transferParams,endtime])
-                    taskqueue.put(t)
-                    if len(framesTransfered) >= MAXLEN:
-                        framesTransfered.popleft()
-                    framesTransfered.append(v)
-            for v in previousvisits:
-                if not v in autoprocessingTransfered:
-                    transferParams=self.getTransferParams(v)
-                    if transferParams.m3cap == None:
-                        logger.debug("not enqueing {} no matching group on m3".format(transferParams))
-                        continue
-                    logger.info("Enqueueing thread to transfer {}".format(transferParams))
-                    t=threading.Thread(target=self.mxPostSync,args=[stop,transferParams])
-                    taskqueue.put(t)
-                    if len(autoprocessingTransfered) >= MAXLEN:
-                        autoprocessingTransfered.popleft()
-                    autoprocessingTransfered.append(v)
-                else:
-                    logger.debug("not enqueing {} already transfered".format(transferParams))
+            self.logger.debug(
+                "Previous visits: {}".format(str(previous_visits))
+            )
 
-            # Query the portal every 300 seconds, unless stop is set
-            stop.wait(timeout=300)
-        taskrunthread.join()
-        
+            for visit in previous_visits:
+                process = True
+                # Check if EPN previously synched.
+                if (
+                    self.ignore["previouslySynched"] is not None
+                    and visit["epn"] in self.ignore["previouslySynched"]
+                ):
+                    process = False
 
-    def getCurrentStart(self,visits):
-        currentStart=datetime.datetime.now(self.tz)
-        for v in visits:
-            vs = dateutil.parser.parse(v['start_time'])
-            if vs < currentStart:
-                currentStart=vs
-        return currentStart
+                if process:
+                    if visit not in autoprocessing_transferred:
+                        transfer_params = self.get_transfer_params(visit)
 
+                        if transfer_params.m3cap is None:
+                            continue
 
+                        self.logger.info(
+                            "Previous visit: enqueueing thread to transfer {}".format(
+                                transfer_params
+                            )
+                        )
+                        thread = threading.Thread(
+                            target=self.mx_post_sync,
+                            args=[
+                                stop,
+                                transfer_params,
+                                autoprocessing_transferred,
+                                visit,
+                            ],
+                        )
+                        task_queue.put(thread)
 
-    def mxLiveSync(self,stopTrigger,transferParams,endtime):
-        now = datetime.datetime.now(self.tz)
-        if transferParams.m3cap==None:
+                    else:
+                        self.logger.debug(
+                            "Not enqueueing {} already transferred".format(
+                                transfer_params
+                            )
+                        )
+
+            # Query the portal every sync-frequency-hours, unless stop is set
+            stop.wait(timeout=(self.config["sync-frequency-hours"] * 3600))
+
+        task_run_thread.join()
+
+    def get_current_start(self, visits):
+        current_start = datetime.datetime.now(self.tz)
+        for visit in visits:
+            visit_start = dateutil.parser.parse(visit["start_time"])
+            if visit_start < current_start:
+                current_start = visit_start
+        return current_start
+
+    def mx_post_sync(
+        self, stop_trigger, transfer_params, autoprocessing_transferred, visit
+    ):
+        if transfer_params.m3cap is None:
             return
-        while now < endtime and not stopTrigger.isSet():
-            transferParams.framesOnly=False
-            ASTransfer.transfer(transferParams,stopTrigger)
-            now = datetime.datetime.now(self.tz)
-        if not stopTrigger.isSet(): 
-            transferParams.framesOnly=False
-            ASTransfer.transfer(transferParams,stopTrigger)
+        if not stop_trigger.isSet():
+            transfer_params.framesOnly = False
+            self.logger.debug("mx_post_sync: calling transfer")
+            transfer = ASTransfer.ASTransfer()
+            return_code = transfer.transfer(
+                transfer_params, stop_trigger, self.execute
+            )
+            if return_code is "0":
+                self.logger.info("mxPostSync: transfer complete")
+                # Updating ignore.yml
+                self.ignore["previouslySynched"].append(transfer_params.epn)
 
+                try:
+                    with open(self.config["ignore"], "w") as f:
+                        yaml.dump(self.ignore, f)
+                except EnvironmentError:
+                    self.logger.error(
+                        "Unable to update {}".format(self.config["ignore"])
+                    )
 
-    def mxPostSync(self,stopTrigger,transferParams):
-        if transferParams.m3cap==None:
-            return
-        if not stopTrigger.isSet(): 
-            transferParams.framesOnly=False
-            ASTransfer.transfer(transferParams,stopTrigger)
+                if len(autoprocessing_transferred) >= self.MAXLEN:
+                    autoprocessing_transferred.popleft()
 
-    def get_m3cap(self,epn):
-        m=re.match('([0-9]+)[a-z]*',epn)
-        epnbase=m.group(1)
-        if epnbase in self.config['epn_cap_map']:
-            return self.config['epn_cap_map'][epnbase]
+                autoprocessing_transferred.append(visit)
+
+            else:
+                self.logger.info(
+                    "Transfer failed: EPN: {} Return Code: {}".format(
+                        transfer_params.epn, return_code
+                    )
+                )
+
+    # Determine if the epn, is in config.yaml. The last char is removed to check.
+    def get_m3cap(self, epn):
+        m = re.match("([0-9]+)[a-z]*", epn)
+        epnbase = m.group(1)
+        if epnbase in self.config["epn_cap_map"]:
+            return self.config["epn_cap_map"][epnbase]
         else:
             return None
 
-
-    def getTransferParams(self,visit):
+    def get_transfer_params(self, visit):
         if visit is not None:
-            return TransferParameters(visit,self.get_m3cap(visit['epn']),self.config['keyfile'])
+            return TransferParameters(
+                visit,
+                self.get_m3cap(visit["epn"]),
+                self.config["host"],
+                self.config["destination-root-path"],
+                self.config["key-file"],
+            )
         else:
-            return TransferParameters(visit,None,self.config['keyfile'])
-
+            return TransferParameters(
+                visit,
+                None,
+                self.config["host"],
+                self.config["destination-root-path"],
+                self.config["key-file"],
+            )

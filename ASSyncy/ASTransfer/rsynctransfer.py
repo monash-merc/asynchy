@@ -1,95 +1,187 @@
 import logging
-class transfermethod:
-    @staticmethod
-    def transfer(params,stop):
-        import time
-        username="help@massive.org.au"
+import os.path
+import re
+import subprocess
+
+
+class TransferMethod:
+    def __init__(self):
+        self.logger = logging.getLogger("mx_sync.ASTransfer.TransferMethod")
+        self.logger.debug("creating an instance of TransferMethod")
+
+    def transfer(self, params, stop, execute):
+        username = "help@massive.org.au"
         if params.framesOnly:
-            srcpath="{}:/data/{}/data/frames/".format(params.host,params.epn)
+            srcpath = "{}:/data/{}/data/frames/".format(
+                params.host, params.epn
+            )
         else:
-            srcpath="{}:/data/{}/data/".format(params.host,params.epn)
+            srcpath = "{}:/data/{}/data/".format(params.host, params.epn)
         if params.framesOnly:
-            destpath="{}/{}/{}/data/frames/".format(params.path,params.m3cap,params.epn)
+            destpath = "{}/{}/{}/data/frames/".format(
+                params.path, params.m3cap, params.epn
+            )
         else:
-            destpath="{}/{}/{}/data/".format(params.path,params.m3cap,params.epn)
-        keyfile=params.keyfile
-        transfermethod.rsync(username,srcpath,destpath,keyfile,stop)
+            destpath = "{}/{}/{}/data/".format(
+                params.path, params.m3cap, params.epn
+            )
+        key_file = params.key_file
+        TransferMethod.rsync(
+            self, username, srcpath, destpath, key_file, stop, execute
+        )
+
+    def transfersquash(self, params, stop):
+        username = "help@massive.org.au"
+        srcpath = "{}:/data/{}/data/*.sqfs".format(params.host, params.epn)
+        destpath = "{}/{}/{}/data/*.sqfs".format(
+            params.path, params.m3cap, params.epn
+        )
+        key_file = params.key_file
+        TransferMethod.rsync(self, username, srcpath, destpath, key_file, stop)
+
+    def list(self, params, stop):
+        username = "help@massive.org.au"
+        srcpath = "sftp.synchrotron.org.au:/data/"
+        key_file = params.key_file
+
+        self.logger.debug("calling rsynclist")
+        return TransferMethod.rsynclist(
+            self, username, srcpath, key_file, stop
+        )
 
     @staticmethod
-    def transfersquash(params,stop):
-        import time
-        username="help@massive.org.au"
-        srcpath="{}:/data/{}/data/*.sqfs".format(params.host,params.epn)
-        destpath="{}/{}/{}/data/*.sqfs".format(params.path,params.m3cap,params.epn)
-        keyfile=params.keyfile
-        transfermethod.rsync(username,srcpath,destpath,keyfile,stop)
-
-    @staticmethod
-    def list(params,stop, config):
-        import time
-        username="help@massive.org.au"
-        srcpath="sftp.synchrotron.org.au:/data/"
-        keyfile=params.keyfile
-        return transfermethod.rsynclist(username,srcpath,keyfile, config, stop)
-
-    @staticmethod
-    def squashpresent(params,stop):
-        import time
-        username="help@massive.org.au"
-        srcpath="sftp.synchrotron.org.au:/data/{}/*.sqfs"
-        keyfile=params.keyfile
-        cmd=['rsync','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath)]
-        p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        (stdout,stderr) = p.communicate
+    def squashpresent(params, stop):
+        username = "help@massive.org.au"
+        srcpath = "sftp.synchrotron.org.au:/data/{}/*.sqfs"
+        key_file = params.key_file
+        cmd = [
+            "rsync",
+            "-e ssh -i {}".format(key_file),
+            "{}@{}".format(username, srcpath),
+        ]
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        (stdout, stderr) = p.communicate
         if p.returncode == 0:
             return True
         else:
             return False
 
-    @staticmethod
-    def rsynclist(username,srcpath,keyfile, config, stop=None):
-        import subprocess
-        import re
-        logging.basicConfig(filename=config['logfile'],format="%(asctime)s %(levelname)s:%(process)s: %(message)s")
-        logger=logging.getLogger()
-        logger.setLevel('info')
+    # rsync with no destination argument will list the source files.
+    def rsynclist(self, username, srcpath, key_file, stop=None):
         epns = []
-        dirre = re.compile(b'\s+(?P<name>\S+)\n')
-        cmd=['rsync','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath)]
-        p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        for stdout_line in iter(p.stdout.readline, b''):
+        dirre = re.compile(b"\s+(?P<name>\S+)\n")
+        cmd = [
+            "rsync",
+            "-e ssh -i {}".format(key_file),
+            "{}@{}".format(username, srcpath),
+        ]
+
+        self.logger.info("Using rsync to obtain a list of epns")
+        self.logger.debug("rsynclist: " + str(cmd))
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        for stdout_line in iter(p.stdout.readline, b""):
             m = dirre.search(stdout_line)
             if m:
-                epns.append(m.groupdict()['name'])
-            if stop != None and stop.isSet():
+                epns.append(m.groupdict()["name"])
+            if stop is not None and stop.isSet():
                 p.terminate()
-        for stderr_line in iter(p.stderr.readline, b''):
-            logger.warning(stderr_line)
-            logger.debug(stderr_line)
-            if stop != None and stop.isSet():
-                p.terminate()
-        return epns
-            
 
-    @staticmethod
-    def rsync(username,srcpath,destpath,keyfile,stop=None):
-        import subprocess
-        import os
-        import os.path
-        logger=logging.getLogger()
+        for stderr_line in iter(p.stderr.readline, b""):
+            self.logger.warning(stderr_line)
+            self.logger.debug(stderr_line)
+            if stop is not None and stop.isSet():
+                p.terminate()
+
+        return epns
+
+    def rsync(self, username, srcpath, destpath, key_file, execute, stop=None):
         try:
-            os.makedirs(os.path.dirname(destpath.rstrip('/')))
+            os.makedirs(os.path.dirname(destpath.rstrip("/")))
         except:
             pass
-        cmd=['rsync','-r','-l','-P','-i','--chmod=Dg+s,ug+w,o-wx,ug+X','--perms','--size-only','--include','.info','--exclude','.*','-e ssh -i {}'.format(keyfile),'{}@{}'.format(username,srcpath),'{}'.format(destpath)]
-        p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        for stdout_line in iter(p.stdout.readline, b''):
-            if stop != None and stop.isSet():
+
+        self.logger.info(
+            "Execute: {} Starting transfer to: {} ".format(execute, destpath)
+        )
+        self.logger.debug(
+            "Keyfile: "
+            + key_file
+            + " Username: "
+            + username
+            + " Srcpath: "
+            + srcpath
+            + " Destpath: "
+            + destpath
+        )
+        cmd = [
+            "rsync",
+            "-r",
+            "-t",
+            "-P",
+            "-stats",
+            "--chmod=Dg+s,ug+w,o-wx,ug+X",
+            "--perms",
+            "--size-only",
+            "--include",
+            ".info",
+            "--exclude",
+            ".*",
+            "-e ssh -i {}".format(key_file),
+            "{}@{}".format(username, srcpath),
+            "{}".format(destpath),
+        ]
+        cmd_dryrun = [
+            "rsync",
+            "--dry-run",
+            "-r",
+            "-t",
+            "-P",
+            "-stats",
+            "--chmod=Dg+s,ug+w,o-wx,ug+X",
+            "--perms",
+            "--size-only",
+            "--include",
+            ".info",
+            "--exclude",
+            ".*",
+            "-e ssh -i {}".format(key_file),
+            "{}@{}".format(username, srcpath),
+            "{}".format(destpath),
+        ]
+        if execute is True:
+            p = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+        else:
+            p = subprocess.Popen(
+                cmd_dryrun, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+
+        p.communicate()
+        for stdout_line in iter(p.stdout.readline, b""):
+            self.logger.info(stdout_line)
+            if stop is not None and stop.isSet():
                 p.terminate()
-        for stderr_line in iter(p.stderr.readline, b''):
-            logger.warning(stderr_line)
-            logger.debug(stderr_line)
-            if stop != None and stop.isSet():
+        for stderr_line in iter(p.stderr.readline, b""):
+            self.logger.warning(stderr_line)
+            self.logger.debug(stderr_line)
+            if stop is not None and stop.isSet():
                 p.terminate()
-        returncode = p.returncode
-        logger.info("Completed transfer to {} returncode {}".format(destpath,returncode))
+        return_code = p.returncode
+        if return_code is "0":
+            self.logger.info(
+                "Completed transfer to: {} Return code: {}".format(
+                    destpath, return_code
+                )
+            )
+        else:
+            self.logger.info(
+                "Failed transfer to: {} Return code: {}".format(
+                    destpath, return_code
+                )
+            )
