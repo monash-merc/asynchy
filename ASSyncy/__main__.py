@@ -1,34 +1,54 @@
-try:
-    import six
-except:
-    pass
-import re
-import signal
+import argparse
+import logging
 
 try:
     import queue
-except:
+except ImportError:
     import Queue as queue
-import threading
-import requests
-import collections
-import dateutil.parser
-import datetime
-import time
-import logging
-from . import ASPortal
-from . import ASTransfer
+import sys
+import yaml
+
 from . import ASSync
 
+
 def main():
-    import sys
-    if len(sys.argv)>1:
-        config=sys.argv[1]
-    else:
-        print("Usage: {} <config.yml>".format(sys.argv[0]))
-        exit(1)
-    sync=ASSync(config)
+
+    parser = argparse.ArgumentParser(
+        description="ASSyncy: a tool to repatriate data from the Australian Synchrotron."
+    )
+    parser.add_argument("--config", help="path to config.yml")
+    parser.add_argument(
+        "--execute",
+        help="If not set, rsync --dryrun execute",
+        action="store_true",
+    )
+    args = parser.parse_args()
+
+    with open(args.config) as f:
+        config = yaml.safe_load(f.read())
+
+    # setup logging
+    logging_dict = {
+        "logging.ERROR": logging.ERROR,
+        "logging.WARNING": logging.WARNING,
+        "logging.INFO": logging.INFO,
+        "logging.DEBUG": logging.DEBUG,
+    }
+
+    logger = logging.getLogger("mx_sync")
+    logger.setLevel(logging_dict[config["log-level"]])
+
+    fh = logging.FileHandler(config["log-files"]["sync"])
+    fh.setLevel(logging_dict[config["log-level"]])
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s:%(process)s: %(message)s"
+    )
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    sync = ASSync(config, args.execute)
     sync.main()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

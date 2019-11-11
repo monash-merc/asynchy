@@ -1,9 +1,15 @@
-#from .mocktransfer import transfermethod as transfermethod
-from .rsynctransfer import transfermethod as transfermethod
+# from .mocktransfer import TransferMethod
+from .rsynctransfer import TransferMethod
 import logging
-def transfer(params,stop):
-    logger=logging.getLogger()
-    logger.debug("executing transfer")
-    transfermethod.transfer(params,stop)
 
 
+class ASTransfer:
+    def __init__(self):
+        self.logger = logging.getLogger("mx_sync.ASTransfer")
+        self.logger.info("creating an instance of ASTransfer")
+
+    def transfer(self, params, stop, execute):
+        self.logger.info("ASTransfer.transfer")
+        method = TransferMethod()
+        return_code = method.transfer(params, stop, execute)
+        return return_code
