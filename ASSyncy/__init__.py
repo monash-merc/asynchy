@@ -232,16 +232,20 @@ class ASSync:
             )
             if return_code is "0":
                 self.logger.info("mxPostSync: transfer complete")
-                # Updating ignore.yml
-                self.ignore["previouslySynched"].append(transfer_params.epn)
 
-                try:
-                    with open(self.config["ignore"], "w") as f:
-                        yaml.dump(self.ignore, f)
-                except EnvironmentError:
-                    self.logger.error(
-                        "Unable to update {}".format(self.config["ignore"])
+                if self.execute:
+                    # only update for live runs
+                    # Updating ignore.yml
+                    self.ignore["previouslySynched"].append(
+                        transfer_params.epn
                     )
+                    try:
+                        with open(self.config["ignore"], "w") as f:
+                            yaml.dump(self.ignore, f)
+                    except EnvironmentError:
+                        self.logger.error(
+                            "Unable to update {}".format(self.config["ignore"])
+                        )
 
                 if len(autoprocessing_transferred) >= self.MAXLEN:
                     autoprocessing_transferred.popleft()
