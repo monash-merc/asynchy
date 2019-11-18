@@ -26,9 +26,10 @@ class TransferMethod:
                 params.path, params.m3cap, params.epn
             )
         key_file = params.key_file
-        TransferMethod.rsync(
-            self, username, srcpath, destpath, key_file, stop, execute
+        return_code = TransferMethod.rsync(
+            self, username, srcpath, destpath, key_file, execute, stop
         )
+        return return_code
 
     def transfersquash(self, params, stop):
         username = "help@massive.org.au"
@@ -106,7 +107,9 @@ class TransferMethod:
             pass
 
         self.logger.info(
-            "Execute: {} Starting transfer to: {} ".format(execute, destpath)
+            "Execute: {} Starting transfer to: {} ".format(
+                str(execute), destpath
+            )
         )
         self.logger.debug(
             "Keyfile: "
@@ -141,7 +144,7 @@ class TransferMethod:
             "-r",
             "-t",
             "-P",
-            "-stats",
+            "--stats",
             "--chmod=Dg+s,ug+w,o-wx,ug+X",
             "--perms",
             "--size-only",
@@ -155,24 +158,27 @@ class TransferMethod:
         ]
         if execute is True:
             p = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                args=cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
         else:
             p = subprocess.Popen(
-                cmd_dryrun, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                args=cmd_dryrun, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
 
-        p.communicate()
         for stdout_line in iter(p.stdout.readline, b""):
-            self.logger.info(stdout_line)
+            self.logger.info("Stdout: {}".format(stdout_line.decode("utf-8")))
             if stop is not None and stop.isSet():
                 p.terminate()
         for stderr_line in iter(p.stderr.readline, b""):
-            self.logger.warning(stderr_line)
-            self.logger.debug(stderr_line)
+            self.logger.warning(
+                "Stderr: {}".format(stderr_line.decode("utf-8"))
+            )
             if stop is not None and stop.isSet():
                 p.terminate()
-        return_code = p.returncode
+
+        p.wait()
+        return_code = str(p.returncode)
+
         if return_code is "0":
             self.logger.info(
                 "Completed transfer to: {} Return code: {}".format(
@@ -185,3 +191,4 @@ class TransferMethod:
                     destpath, return_code
                 )
             )
+        return return_code
