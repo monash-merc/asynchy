@@ -179,7 +179,7 @@ class TransferMethod:
         p.wait()
         return_code = str(p.returncode)
 
-        if return_code is "0":
+        if return_code == "0":
             self.logger.info(
                 "Completed transfer to: {} Return code: {}".format(
                     destpath, return_code

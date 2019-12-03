@@ -230,7 +230,7 @@ class ASSync:
             return_code = transfer.transfer(
                 transfer_params, stop_trigger, self.execute
             )
-            if return_code is "0":
+            if return_code == "0":
                 self.logger.info("mxPostSync: transfer complete")
 
                 if self.execute:

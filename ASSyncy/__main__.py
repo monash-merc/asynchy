@@ -19,7 +19,7 @@ def main():
     parser.add_argument("--config", help="path to config.yml")
     parser.add_argument(
         "--execute",
-        help="If not set, rsync --dryrun execute",
+        help="If not set, rsync --dryrun executes",
         action="store_true",
     )
     args = parser.parse_args()
