@@ -1,0 +1,31 @@
+---
+comment: "This is a sample config file"
+epn_cap_map:
+    "12282": ny79
+
+ignore: your_path/etc/ignore.yml
+
+equipment:
+    - { username: 'user_name', password: 'password', client_name: 'client_name', client_password: 'password', id: 23}
+    - { username: 'user_name', password: 'password', client_name: 'client_name', client_password: 'password', id: 24}
+
+base-url: https://portal.synchrotron.org.au:443
+
+epnalert-email-to: to@domain.edu
+epnalert-email-from: from@domain.edu
+epnalert-email-smtp: smtp.domain.edu
+epnalert-template-folder: your_path/etc
+epnalert-template-text: epnalert-text.j2
+epnalert-template-html: epnalert-html.j2
+visit-day-range: 200
+key-file: your_path/etc/mx_key
+host: sftp.synchrotron.org.au
+destination-root-path: /scratch
+sync-frequency-hours: 1
+max-tasks: 1
+log-level: logging.DEBUG
+
+log-files:
+    sync: your_path/var/log/sync.log
+    epnalert: your_path/var/log/epnalert.log
+    email: your_path/var/log/email.log
