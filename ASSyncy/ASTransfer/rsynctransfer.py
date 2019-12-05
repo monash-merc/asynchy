@@ -141,6 +141,7 @@ class TransferMethod:
         cmd_dryrun = [
             "rsync",
             "--dry-run",
+            "-v",
             "-r",
             "-t",
             "-P",
