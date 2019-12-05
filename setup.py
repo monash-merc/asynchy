@@ -23,7 +23,7 @@ setup(
     setup_requires=[],
     desktop_entries={},
     version="0.0.2",
-    description="Python package syncronise data from the AS MX beamline to M3",
+    description="Python package synchronise data from the AS MX beam line to M3",
     long_description=long_description,
     # The project's main homepage.
     url="https://gitlab.erc.monash.edu.au/hpc-team/ASSyncy",

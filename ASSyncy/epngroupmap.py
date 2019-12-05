@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import dateutil.tz
 import logging
@@ -25,7 +26,7 @@ class Epngroupmap(object):
         # TZ in both sides of the operator
         self.tz = dateutil.tz.gettz("Australia/Melbourne")
 
-        self.assync = ASSync(config)
+        self.assync = ASSync(config, True)
 
     # Format the output of the scientists into two columns
     # Showing first name, last name and email
@@ -90,9 +91,8 @@ class Epngroupmap(object):
 
     def main(self):
         self.logger.info("Obtaining EPNs.")
-        epns = ASTransfer.TransferMethod.list(
-            self, self.assync.get_transfer_params(None), None
-        )
+        transfer = ASTransfer.ASTransfer()
+        epns = transfer.list(self.assync.get_transfer_params(None), None)
 
         self.logger.debug("epns: {}".format(epns))
 
@@ -194,13 +194,15 @@ class Epngroupmap(object):
 
 
 def main():
-    if len(sys.argv) > 1:
-        config_arg = sys.argv[1]
-    else:
-        print("Usage: {} <config.yml>".format(sys.argv[0]))
-        exit(1)
+    parser = argparse.ArgumentParser(
+        description="EpnAlert: a tool to notify users of new EPNs awaiting data repatriation from the "
+        "Australian Synchrotron."
+    )
+    parser.add_argument("--config", help="path to config.yml")
 
-    with open(config_arg) as f:
+    args = parser.parse_args()
+
+    with open(args.config) as f:
         config = yaml.safe_load(f.read())
 
     # setup logging

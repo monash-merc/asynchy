@@ -13,3 +13,9 @@ class ASTransfer:
         method = TransferMethod()
         return_code = method.transfer(params, stop, execute)
         return return_code
+
+    def list(self, params, stop):
+        self.logger.info("ASTransfer.transfer")
+        method = TransferMethod()
+        sync_list = method.list(params, stop)
+        return sync_list

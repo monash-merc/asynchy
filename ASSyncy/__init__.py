@@ -239,6 +239,7 @@ class ASSync:
                     self.ignore["previouslySynched"].append(
                         transfer_params.epn
                     )
+                    self.ignore["previouslySynched"].sort()
                     try:
                         with open(self.config["ignore"], "w") as f:
                             yaml.dump(self.ignore, f)
