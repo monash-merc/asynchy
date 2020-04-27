@@ -101,3 +101,4 @@ ENV/
 # mypy
 .mypy_cache/
 tests/config/epn*
+.DS_Store
