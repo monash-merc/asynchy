@@ -216,7 +216,8 @@ def main():
     logger1 = logging.getLogger("epnalert")
     logger1.setLevel(logging_dict[config["log-level"]])
 
-    fh1 = logging.FileHandler(config["log-files"]["epnalert"])
+    # fh1 = logging.FileHandler(config["log-files"]["epnalert"])
+    fh1 = logging.handlers.RotatingFileHandler(config["log-files"]["epnalert"], maxBytes=5 * 1024 * 1024, backupCount=5)
     fh1.setLevel(logging_dict[config["log-level"]])
     formatter1 = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s:%(process)s: %(message)s"

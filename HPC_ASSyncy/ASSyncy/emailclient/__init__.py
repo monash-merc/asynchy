@@ -18,7 +18,8 @@ class EmailClient:
         self.logger = logging.getLogger("email")
         self.logger.setLevel(logging_dict[config["log-level"]])
 
-        fh = logging.FileHandler(config["log-files"]["email"])
+        # fh = logging.FileHandler(config["log-files"]["email"])
+        fh = logging.handlers.RotatingFileHandler(config["log-files"]["email"], maxBytes=1 * 1024 * 1024, backupCount=5)
         fh.setLevel(logging_dict[config["log-level"]])
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s:%(process)s: %(message)s"
