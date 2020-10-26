@@ -1,5 +1,6 @@
 import argparse
 import logging
+import logging.handlers
 
 try:
     import queue
@@ -38,7 +39,8 @@ def main():
     logger = logging.getLogger("mx_sync")
     logger.setLevel(logging_dict[config["log-level"]])
 
-    fh = logging.FileHandler(config["log-files"]["sync"])
+    # fh = logging.FileHandler(config["log-files"]["sync"])
+    fh = logging.handlers.RotatingFileHandler(config["log-files"]["sync"], maxBytes=10 * 1024 * 1024, backupCount=5)
     fh.setLevel(logging_dict[config["log-level"]])
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s:%(process)s: %(message)s"
