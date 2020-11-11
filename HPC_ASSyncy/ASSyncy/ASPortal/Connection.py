@@ -62,6 +62,7 @@ class Connection:
         data = json.loads(r.text)
         try:
             self.access_token = data["data"]["access_token"]
+            self.logger.debug("Auth: data {}".format(data))
         except KeyError:
             if u"meta" in data and u"error_message" in data["meta"]:
                 self.logger.debug(data["meta"]["error_message"])
@@ -92,6 +93,7 @@ class Connection:
 
     def getVisits(self, start_time, end_time):
         self.logger.info("Obtain visits")
+        self.logger.debug("getVisits: {} {}".format(start_time, end_time))
         r = self.session.get(
             self.visitsURL,
             params={
@@ -101,6 +103,7 @@ class Connection:
             },
             verify=self.verify,
         )
+        self.logger.debug("Obtained session")
         if r.status_code == 401:
             self.auth()
             r = self.session.get(
