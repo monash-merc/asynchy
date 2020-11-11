@@ -2,6 +2,7 @@ import argparse
 import datetime
 import dateutil.tz
 import logging
+import logging.handlers
 import requests
 import sys
 from tabulate import tabulate
