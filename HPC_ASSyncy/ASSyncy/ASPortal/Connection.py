@@ -115,7 +115,7 @@ class Connection:
         try:
             return json.loads(r.text)["data"]["visits"]
         except KeyError:
-            self.logger.info("Key error:" + json.loads(r.text))
+            self.logger.info("Key error:" + json.dumps(r.text))
             return []
         except Exception as e:
             self.logger.debug("Get visits: " + e)
