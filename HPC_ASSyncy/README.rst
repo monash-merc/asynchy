@@ -17,7 +17,8 @@ The following steps are an example:
         source /opt/assyncy/bin/activate
 
     - pip install ASSyncy
-        pip install git+https://github.com/monash-merc/asynchy/HPC_ASSyncy.git#egg=ASSyncy
+        pip install git+https://github.com/monash-merc/asynchy.git#subdirectory=HPC_ASSyncy&egg=ASSyncy
+
 
 Installation for Development
 ----------------------------
@@ -35,10 +36,10 @@ The following steps are an example:
     - Create a source folder and clone the repository
         mkdir /opt/assyncy-Dev/src
         cd /opt/assyncy-Dev/src
-        git clone https://github.com/monash-merc/asynchy/HPC_ASSyncy.git
+        git clone https://github.com/monash-merc/asynchy.git
 
     - Install from source
-        cd ASSyncy
+        cd asynchy/HPC_ASSyncy
         pip install --upgrade --force-reinstall -e . #egg=ASSyncy
 
 Once code modifications have been made, ensure the virtual environment is
