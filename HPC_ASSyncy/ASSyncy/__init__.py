@@ -21,7 +21,7 @@ class TransferParameters:
     framesOnly = False
     epn = None
 
-    def __init__(self, visit, cap, host, destination_path, key_file=None):
+    def __init__(self, visit, cap, host, destination_path, beamline, key_file=None):
         self.logger = logging.getLogger("mx_sync.TransferParameters")
         self.logger.debug("creating an instance of TransferParameters")
 
@@ -39,6 +39,7 @@ class TransferParameters:
         self.key_file = key_file
         self.host = host
         self.path = destination_path
+        self.beamline = beamline
 
     # representation of class
     def __repr__(self):
@@ -276,7 +277,8 @@ class ASSync:
                 self.get_m3cap(visit["epn"]),
                 self.config["host"],
                 self.config["destination-root-path"],
-                self.config["key-file"],
+                self.config["beamline"],
+                self.config["key-file"]
             )
         else:
             return TransferParameters(
@@ -284,5 +286,6 @@ class ASSync:
                 None,
                 self.config["host"],
                 self.config["destination-root-path"],
-                self.config["key-file"],
+                self.config["beamline"],
+                self.config["key-file"]
             )
