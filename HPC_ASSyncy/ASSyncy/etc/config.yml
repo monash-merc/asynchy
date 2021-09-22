@@ -11,6 +11,8 @@ equipment:
 
 base-url: https://portal.synchrotron.org.au:443
 
+beamline: mx
+
 epnalert-email-to: to@domain.edu
 epnalert-email-from: from@domain.edu
 epnalert-email-smtp: smtp.domain.edu
