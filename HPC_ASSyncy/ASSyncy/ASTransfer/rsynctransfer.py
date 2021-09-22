@@ -12,11 +12,11 @@ class TransferMethod:
     def transfer(self, params, stop, execute):
         username = "help@massive.org.au"
         if params.framesOnly:
-            srcpath = "{}:/data/{}/data/frames/".format(
-                params.host, params.epn
+            srcpath = "{}:/data/{}/{}/frames/".format(
+                params.host, params.beamline, params.epn
             )
         else:
-            srcpath = "{}:/data/{}/data/".format(params.host, params.epn)
+            srcpath = "{}:/data/{}/{}/".format(params.host, params.beamline, params.epn)
         if params.framesOnly:
             destpath = "{}/{}/{}/data/frames/".format(
                 params.path, params.m3cap, params.epn
@@ -42,7 +42,7 @@ class TransferMethod:
 
     def list(self, params, stop):
         username = "help@massive.org.au"
-        srcpath = "sftp.synchrotron.org.au:/data/"
+        srcpath = "sftp.synchrotron.org.au:/data/{}/".format(params.beamline)
         key_file = params.key_file
 
         self.logger.debug("calling rsynclist")
