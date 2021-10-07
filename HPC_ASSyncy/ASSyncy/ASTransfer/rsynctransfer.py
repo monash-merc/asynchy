@@ -12,11 +12,11 @@ class TransferMethod:
     def transfer(self, params, stop, execute):
         username = "help@massive.org.au"
         if params.framesOnly:
-            srcpath = "{}:data/{}/{}/frames/".format(
+            srcpath = "{}:/data/{}/{}/frames/".format(
                 params.host, params.beamline, params.epn
             )
         else:
-            srcpath = "{}:data/{}/{}/".format(params.host, params.beamline, params.epn)
+            srcpath = "{}:/data/{}/{}/".format(params.host, params.beamline, params.epn)
         if params.framesOnly:
             destpath = "{}/{}/{}/data/frames/".format(
                 params.path, params.m3cap, params.epn
