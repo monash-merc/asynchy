@@ -26,7 +26,7 @@ setup(
     description="Python package synchronise data from the AS MX beam line to M3",
     long_description=long_description,
     # The project's main homepage.
-    url="https://gitlab.erc.monash.edu.au/hpc-team/ASSyncy",
+    url="https://github.com/monash-merc/asynchy/tree/master/HPC_ASSyncy",
     # Author details
     author="Chris Hines, Jay van Schyndel",
     author_email="help@massive.org.au",
