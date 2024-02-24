@@ -5,7 +5,7 @@ watchdog==0.10.4
 flake8==3.9.0
 tox==3.23.0
 Sphinx==3.5.4
-coverage==5.3.1
+coverage==7.4.3
 twine==3.4.0
 pyyaml>=3.1
 Click>=6.0
